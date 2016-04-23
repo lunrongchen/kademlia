@@ -146,6 +146,11 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
+	for keys := range k.HashTable {
+		if keys == searchKey {
+			fmt.Print(k.HashTable[keys])
+		}
+	}
 	return []byte(""), &CommandFailed{"Not implemented"}
 }
 
