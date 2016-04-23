@@ -102,9 +102,7 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
-	} 
-	//HSQ
-	else {
+	} else {
 		recID :=k.SelfContact.NodeId.Xor(nodeId)
 		nzero := recID.PrefixLen()
         for e := k.ContactTable.buckets[b-nzero-1].Front(); e != nil; e = e.Next() {
