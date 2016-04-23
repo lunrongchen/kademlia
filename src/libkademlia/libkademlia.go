@@ -28,7 +28,7 @@ type Kademlia struct {
 
 type Router struct {
 	SelfContact 	Contact
-	Buckets     	[][]Contact
+	Buckets     	[b]*list.list
 }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
