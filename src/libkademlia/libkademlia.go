@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
+	"container/list"
 )
 
 const (
@@ -22,11 +23,29 @@ const (
 type Kademlia struct {
 	NodeID      ID
 	SelfContact Contact
+	//HSQ
+	hashtable map[ID] []byte
+	ContactTable RountingTable
 }
 
+type RountingTable struct {
+    buckets [b]*list.List
+}
+
+
+func InitiRoutingTable (ContactTable RountingTable) {
+	for i := 0; i < b; i++ {
+		buckets[i] = list.New()
+	}
+}
+//
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 	k.NodeID = nodeID
+	//HSQ
+    k.hashtable = make(map[ID] []byte)
+    InitiRoutingTable(k.ContactTable)
+
 
 	// TODO: Initialize other state here as you add functionality.
 
@@ -83,6 +102,16 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
+	} 
+	//HSQ
+	else {
+		recID :=k.SelfContact.NodeId.Xor(nodeId)
+		nzero := recID.PrefixLen()
+        for e := k.ContactTable.buckets[b-nzero-1].Front(); e != nil; e = e.Next() {
+        	if e.NodeID == nodeID {
+        		return &e
+        	}
+        }
 	}
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
