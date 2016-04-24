@@ -86,10 +86,17 @@ type FindNodeResult struct {
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
-	distance := k.kademlia.NodeID.Xor(req.NodeID)
-	nzero := distance.PrefixLen()
+	// distance := k.kademlia.NodeID.Xor(req.NodeID)
+	// nzero := distance.PrefixLen()
 	//search closest nodes
-	k.kademlia.ContactChan <- 
+	getContactChan := make(chan *Contact)
+	newFindNode := FNodeChan{getContactChan,req.NodeID}
+	k.kademlia.FindNodeChan <- &newFindNode
+	s := 0
+	for i := range getContactChan {
+		res.Nodes[s] = *i
+		s = s + 1
+	}
 	return nil
 }
 
@@ -113,7 +120,15 @@ type FindValueResult struct {
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
-	
+	res.MsgID = CopyID(req.MsgID)
+	getContactChan := make(chan *Contact)
+	newFindValue := FNodeChan{getContactChan,req.Key}
+	k.kademlia.FindNodeChan <- &newFindValue
+	s := 0
+	for i := range getContactChan {
+		res.Nodes[s] = *i
+		s = s + 1
+	}
 	return nil
 }
 

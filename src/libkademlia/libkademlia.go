@@ -28,6 +28,13 @@ type Kademlia struct {
 	ContactChan		chan *Contact
 	KeyValueChan	chan *KeyValueSet
 	KVSearchChan	chan *KeyValueSet
+	//deal with routing table
+    FindNodeChan	chan *FNodeChan
+}
+
+type FNodeChan struct {
+	GetContactChan	chan *Contact
+	NodeID 	 		ID
 }
 
 type Router struct {
@@ -68,7 +75,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	hostname, port, err := net.SplitHostPort(laddr)
 	if err != nil {
 		return nil
-	}
+	} 
 	s.HandleHTTP(rpc.DefaultRPCPath+port,
 		rpc.DefaultDebugPath+port)
 	l, err := net.Listen("tcp", laddr)
