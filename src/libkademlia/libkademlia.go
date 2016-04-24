@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
-	"container/list"
 )
 
 const (
@@ -21,43 +20,15 @@ const (
 
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
-	NodeID     		ID
-	SelfContact 	Contact
-	RoutingTable 	*Router
-	HashTable   	map[ID][]byte
-	ContactChan		chan *Contact
-	KeyValueChan	chan *KeyValueSet
-	KVSearchChan	chan *KeyValueSet
+	NodeID      ID
+	SelfContact Contact
 }
-
-type Router struct {
-	SelfContact 	Contact
-	Buckets     	[b]*list.List
-}
-
-
-type KeyValueSet struct {
-	Key 			ID
-	Value 			[]byte
-}
-
-// func InitiRoutingTable (RoutingTable *Router) {
-// 	for i := 0; i < b; i++ {
-// 		RoutingTable.Buckets[i] = list.New()
-// 	}
-// }
-
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
-	// TODO: Initialize other state here as you add functionality.
 	k := new(Kademlia)
 	k.NodeID = nodeID
-    k.HashTable = make(map[ID] []byte)
-    // InitiRoutingTable(k.RoutingTable)
 
-    k.ContactChan = make(chan * Contact)
-    k.KeyValueChan = make(chan * KeyValueSet)
-    k.KVSearchChan = make(chan * KeyValueSet)
+	// TODO: Initialize other state here as you add functionality.
 
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
@@ -91,26 +62,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
-
-	go handleRequest(k)
-
 	return k
 }
-
-func handleRequest(k *Kademlia) {
-	for {
-		select {
-		// case contact := <- k.ContactChan:
-			// k.RoutingTable.update(contact)
-		case kvset := <- k.KeyValueChan:
-			k.HashTable[kvset.Key] = kvset.Value
-		// case kvset := <- k.KVSearchChan:
-			//todo
-		}
-		fmt.Sprintf("ii")
-	}
-}
-
 
 func NewKademlia(laddr string) *Kademlia {
 	return NewKademliaWithId(laddr, NewRandomID())
@@ -130,15 +83,6 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
-	// } else {
-	// 	recID :=k.SelfContact.NodeID.Xor(nodeId)
-	// 	nzero := recID.PrefixLen()
- //        for e := k.RoutingTable.Buckets[b-nzero-1].Front(); e != nil; e = e.Next() {
- //        	if e.Value.NodeID == nodeId {
- //        		k.ContactChan <- &e.Value
- //        		return &e.Value,nil
- //        	}
- //        }
 	}
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
@@ -151,30 +95,10 @@ func (e *CommandFailed) Error() string {
 	return fmt.Sprintf("%s", e.msg)
 }
 
-func ConbineHostIP(host net.IP, port uint16) string {
-	return host.String() + ":" + strconv.FormatInt(int64(port), 10)
-}
-
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
-	ping := PingMessage{k.SelfContact, NewRandomID()}
-	var pong PongMessage
-
-	port_str := strconv.Itoa(int(port))
-	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(host, port), rpc.DefaultRPCPath+port_str)
-	if err != nil {
-		log.Fatal("DialHTTP: ", err)
-	}
-	err = client.Call("KademliaCore.Ping", ping, &pong)
-	if err != nil {
-		log.Fatal("Call: ", err)
-		return nil, &CommandFailed{
-			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
-	}
-	k.ContactChan <- &(&pong).Sender
-	// return "Ping successed : " + pong.MsgID.AsString()
 	return nil, &CommandFailed{
-		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
+		"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
@@ -218,4 +142,3 @@ func (k *Kademlia) Vanish(data []byte, numberKeys byte,
 func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
 	return nil
 }
-
