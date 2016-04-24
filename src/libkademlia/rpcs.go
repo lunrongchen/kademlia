@@ -36,10 +36,11 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// TODO: Finish implementation
 	pong.MsgID = CopyID(ping.MsgID)
 	// Specify the sender
+	pong.Sender = k.kademlia.SelfContact
 	// Update contact, etc
+	k.kademlia.ContactChan <- &ping.Sender
 	return nil
 }
-
 ///////////////////////////////////////////////////////////////////////////////
 // STORE
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,8 +58,13 @@ type StoreResult struct {
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
-	(*(*k.kademlia)).HashTable[req.Key] = req.Value
-	*res.MsgID = req.MsgID//return?????
+	// (*(*k.kademlia)).HashTable[req.Key] = req.Value
+	res.MsgID = CopyID(req.MsgID)
+	//get the key-value set from request
+    newKeyValueSet := KeyValueSet{req.Key,req.Value}
+    // update hashtable
+	k.kademlia.KeyValueChan <- &newKeyValueSet
+
 	return nil
 }
 
@@ -79,6 +85,11 @@ type FindNodeResult struct {
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
+	res.MsgID = CopyID(req.MsgID)
+	distance := k.kademlia.NodeID.Xor(req.NodeID)
+	nzero := distance.PrefixLen()
+	//search closest nodes
+	k.kademlia.ContactChan <- 
 	return nil
 }
 
@@ -102,7 +113,7 @@ type FindValueResult struct {
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
-	(*k.kademlia)->HashTable
+	
 	return nil
 }
 
