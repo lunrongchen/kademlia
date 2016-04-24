@@ -121,8 +121,16 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
+	} else {
+		recID :=k.SelfContact.NodeID.Xor(nodeId)
+		nzero := recID.PrefixLen()
+        for e := k.RoutingTable.Buckets[b-nzero-1].Front(); e != nil; e = e.Next() {
+        	if e.Value.NodeID == nodeId {
+        		k.ContactChan <- &e.Value
+        		return &e.Value,nil
+        	}
+        }
 	}
-
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
 
