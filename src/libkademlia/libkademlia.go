@@ -69,8 +69,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	if err != nil {
 		return nil
 	}
-	s.HandleHTTP(rpc.DefaultRPCPath+hostname+port,
-		rpc.DefaultDebugPath+hostname+port)
+	s.HandleHTTP(rpc.DefaultRPCPath+port,
+		rpc.DefaultDebugPath+port)
 	l, err := net.Listen("tcp", laddr)
 	if err != nil {
 		log.Fatal("Listen: ", err)
@@ -100,8 +100,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 func handleRequest(k *Kademlia) {
 	for {
 		select {
-		// case contact := <- k.ContactChan:
-			// k.RoutingTable.update(contact)
+		case contact := <- k.ContactChan:
+			k.RoutingTable.update(contact)
 		case kvset := <- k.KeyValueChan:
 			k.HashTable[kvset.Key] = kvset.Value
 		// case kvset := <- k.KVSearchChan:
@@ -157,7 +157,10 @@ func ConbineHostIP(host net.IP, port uint16) string {
 
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
-	ping := PingMessage{k.SelfContact, NewRandomID()}
+	// ping := PingMessage{k.SelfContact, NewRandomID()}
+	// var pong PongMessage
+	ping := new(PingMessage)
+	ping.MsgID = NewRandomID()
 	var pong PongMessage
 
 	port_str := strconv.Itoa(int(port))
@@ -165,14 +168,14 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
 	}
-	err = client.Call("KademliaCore.Ping", ping, &pong)
+	defer client.Close()
+	err = client.Call("KademliaRPC.Ping", ping, &pong)
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed{
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
 	}
 	k.ContactChan <- &(&pong).Sender
-	// return "Ping successed : " + pong.MsgID.AsString()
 	return nil, &CommandFailed{
 		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
 }
