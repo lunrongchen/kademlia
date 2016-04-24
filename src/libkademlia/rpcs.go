@@ -57,6 +57,8 @@ type StoreResult struct {
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
+	(*(*k.kademlia)).HashTable[req.Key] = req.Value
+	*res.MsgID = req.MsgID//return?????
 	return nil
 }
 
@@ -100,6 +102,7 @@ type FindValueResult struct {
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
+	(*k.kademlia)->HashTable
 	return nil
 }
 
