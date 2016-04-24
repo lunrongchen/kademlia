@@ -97,11 +97,12 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	return k
 }
 
+
 func handleRequest(k *Kademlia) {
 	for {
 		select {
-		// case contact := <- k.ContactChan:
-			// k.RoutingTable.update(contact)
+		case contact := <- k.ContactChan:
+			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
 			k.HashTable[kvset.Key] = kvset.Value
 		// case kvset := <- k.KVSearchChan:
@@ -240,6 +241,30 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
 	return []byte(""), &CommandFailed{"Not implemented"}
+}
+
+func (k *Kademlia) UpdateRoutingTable(contact *Contact){
+	prefixLength := contact.NodeID.Xor(k.SelfContact.NodeID).PrefixLen();
+	bucket := k.RoutingTable.Buckets[prefixLength]
+	for e := bucket.Front(); e != nil; e = e.Next(){
+		if contact.NodeID == k.SelfContact.NodeID {
+			bucket.MoveToBack(e)
+			return
+		}else{
+			if bucket.Len() <= 20 {
+				bucket.PushBack(contact)
+			}else{
+				FrontContact := bucket.Front().Value.(Contact)
+				_, err = k.DoPing(FrontContact.NodeID, FrontContact.Host)
+				if err != nil {
+					bucket.Remove(e)
+					bucket.PushBack(contact)
+				}else{
+					break
+				}
+			}
+		}
+	}
 }
 
 // For project 2!
