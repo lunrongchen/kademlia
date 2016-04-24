@@ -36,7 +36,9 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// TODO: Finish implementation
 	pong.MsgID = CopyID(ping.MsgID)
 	// Specify the sender
+	pong.Sender = k.Kademlia.SelfContact
 	// Update contact, etc
+	k.kademlia.ContactChan <- &ping.Sender
 	return nil
 }
 
@@ -57,6 +59,7 @@ type StoreResult struct {
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
+	// kvset := &
 	return nil
 }
 
