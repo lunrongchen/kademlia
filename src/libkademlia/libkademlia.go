@@ -100,8 +100,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 func handleRequest(k *Kademlia) {
 	for {
 		select {
-		case contact := <- k.ContactChan:
-			k.RoutingTable.update(contact)
+		// case contact := <- k.ContactChan:
+			// k.RoutingTable.update(contact)
 		case kvset := <- k.KeyValueChan:
 			k.HashTable[kvset.Key] = kvset.Value
 		// case kvset := <- k.KVSearchChan:
@@ -175,7 +175,8 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 		return nil, &CommandFailed{
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
 	}
-	k.ContactChan <- &(&pong).Sender
+
+	// k.ContactChan <- &(&pong).Sender
 	return nil, &CommandFailed{
 		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
 }
