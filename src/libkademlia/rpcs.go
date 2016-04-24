@@ -59,7 +59,12 @@ type StoreResult struct {
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
-	// kvset := &
+	res.MsgID = CopyID(req.MsgID)
+	//get the key-value set from request
+    newKeyValueSet := KeyValueSet{req.Key,req.Value}
+    // update hashtable
+	k.kademlia.KeyValueChan <- &newKeyValueSet
+
 	return nil
 }
 
