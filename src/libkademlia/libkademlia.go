@@ -124,9 +124,9 @@ func (e *CommandFailed) Error() string {
 
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
-	ping := new(libkademlia.PingMessage)
-	ping.MsgID = libkademlia.NewRandomID()
-	var pong libkademlia.PongMessage
+	ping := new(PingMessage)
+	ping.MsgID = NewRandomID()
+	var pong PongMessage
 	err = client.Call("KademliaRPC.Ping", ping, &pong)
 	if err != nil {
 		log.Fatal("Call: ", err)
@@ -141,9 +141,18 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 	// TODO: Implement
-	store := new(libkademlia.StoreRequest)
-	store.MsgID = libkademlia.NewRandomID()
-	var storeResult libkademlia.StoreResult
+	hostname, port, err := net.SplitHostPort(firstPeerStr)
+	client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
+		rpc.DefaultRPCPath+port)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+	}
+
+	log.Printf("Store Key and Value\n")
+
+	store := new(StoreRequest)
+	store.MsgID = NewRandomID()
+	var storeResult StoreResult
 	err = client.Call("KademliaRPC.Store",store, &storeResult)
 	if err != nil {
 		log.Fatal("Call:", err)
@@ -151,14 +160,15 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 		"Unable to store " + fmt.Sprintf("%s:%v", host.String(), port)
 		}
 	}
+
 	fmt.Printf("Store msgID: %s\n", store.MsgID.AsString())
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
 	// TODO: Implement
-	findNode := new(libkademlia.FindNodeRequest)
-	findNode.MsgID = libkademlia.NewRandomID()
-	var findNodeResult libkademlia.FindNodeResult
+	findNode := new(FindNodeRequest)
+	findNode.MsgID = NewRandomID()
+	var findNodeResult FindNodeResult
 	err = client.Call("KademliaRPC.FindNode",findNode, &findNodeResult)
 	if err != nil {
 		log.Fatal("Call:", err)
@@ -172,9 +182,9 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 func (k *Kademlia) DoFindValue(contact *Contact,
 	searchKey ID) (value []byte, contacts []Contact, err error) {
 	// TODO: Implement
-	findValue := new(libkademlia.FindValueRequest)
-	findValue.MsgID = libkademlia.NewRandomID()
-	var findValueResult libkademlia.FindValueResult
+	findValue := new(FindValueRequest)
+	findValue.MsgID = NewRandomID()
+	var findValueResult FindValueResult
 	err = client.Call("KademliaRPC.FindValue",findValue, &findValueResult)
 	if err != nil {
 		log.Fatal("Call:", err)
