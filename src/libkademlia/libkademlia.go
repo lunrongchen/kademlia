@@ -93,7 +93,7 @@ func handleRequest(k *Kademlia) {
 	for {
 		select {
 		case contact := <- k.ContactChan:
-			//todo
+			k.RoutingTable.update(contact)
 		case kvset := <- k.KeyValueChan:
 			k.HashTable[kvset.Key] = kvset.Value
 		case kvset := <- k.KVSearchChan:
