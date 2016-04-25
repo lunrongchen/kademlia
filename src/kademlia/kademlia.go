@@ -22,7 +22,7 @@ func main() {
 	// TODO: PUT YOUR GROUP'S NET IDS HERE!
 	// Example:
 	// netIds := "abc123 def456 ghi789"
-	netIds := "lct595 shb006 jgr043"
+	netIds := "lct595"
 	if len(netIds) == 0 {
 		log.Fatal("Variable containing group's net IDs is not set!\n")
 	}
@@ -64,7 +64,10 @@ func main() {
 	ping := new(libkademlia.PingMessage)
 	ping.MsgID = libkademlia.NewRandomID()
 	var pong libkademlia.PongMessage
+
+	log.Printf("Pinging initial peer 1234\n")
 	err = client.Call("KademliaRPC.Ping", ping, &pong)
+	log.Printf("Pinging initial peer 12345\n")
 	if err != nil {
 		log.Fatal("Call: ", err)
 	}
