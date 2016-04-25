@@ -87,6 +87,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
+	k.RoutingTable = new(Router)
 	k.RoutingTable.SelfContact = k.SelfContact
 	k.RoutingTable.Buckets = make([][]Contact, IDBytes)
 	go handleRequest(k)
