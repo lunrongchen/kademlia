@@ -93,6 +93,7 @@ func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	res.MsgID = CopyID(req.MsgID)
 	res.Nodes = make([]Contact, len(foundContacts))
 	res.Nodes = foundContacts
+	k.kademlia.ContactChan <- &(req.Sender)
 	return nil
 }
 
@@ -123,14 +124,14 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	// FindRet.KVSearchResChan = make(chan bool)
 	// k.KVSearchChan <- FindRet
 	// found := <- FindRet.KVSearchResChan
-	FindRet, found := k.kademlia.BoolLocalFindValue(req.Key)
-	res.Value = make([] byte, len(FindRet.Value))
+	_,found, Value := k.kademlia.BoolLocalFindValue(req.Key)
 	if found == true {
-		res.Value = FindRet.Value
+		res.Value = Value
 		return nil
 	}
 	res.Value = nil
 	res.Nodes = k.kademlia.FindClosest(req.Key, 20)
+	k.kademlia.ContactChan <- &(req.Sender)
 	return nil
 }
 

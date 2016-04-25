@@ -311,12 +311,14 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	return []byte(""), &CommandFailed{"Not implemented"}
 }
 
-func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found bool) {
+func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found bool, Value []byte) {
 	result = new(KeyValueSet)
 	result.Key = searchKey
 	result.KVSearchResChan = make(chan bool)
+	result.KVResult = make(chan []byte)
 	k.KVSearchChan <- result
 	found = <- result.KVSearchResChan
+	Value = <- result.KVResult
 	return
 }
 
