@@ -97,6 +97,29 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	return k
 }
 
+func (k *Kademlia) UpdateRoutingTable (contact *Contact){
+	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
+	bucket := k.RoutingTable.Buckets[prefixLength]
+	for e := bucket.Front(); e != nil; e = e.Next(){
+		if contact.NodeID == e.Value.(Contact).NodeID {
+			bucket.MoveToBack(e)
+			return
+		}else{
+			if bucket.Len() <= 20 {
+				bucket.PushBack(contact)
+				}else{
+				  _, err :=	k.DoPing(bucket.Front().Value.(Contact).Host, bucket.Front().Value.(Contact).Port) 
+					if err != nil {
+						bucket.Remove(e)
+						bucket.PushBack(contact)
+					}else{
+						break
+					}
+				}
+			}
+	}
+}
+
 
 func handleRequest(k *Kademlia) {
 	for {
@@ -243,29 +266,31 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	return []byte(""), &CommandFailed{"Not implemented"}
 }
 
-func (k *Kademlia) UpdateRoutingTable(contact *Contact){
-	prefixLength := contact.NodeID.Xor(k.SelfContact.NodeID).PrefixLen();
-	bucket := k.RoutingTable.Buckets[prefixLength]
-	for e := bucket.Front(); e != nil; e = e.Next(){
-		if contact.NodeID == k.SelfContact.NodeID {
-			bucket.MoveToBack(e)
-			return
-		}else{
-			if bucket.Len() <= 20 {
-				bucket.PushBack(contact)
-			}else{
-				FrontContact := bucket.Front().Value.(Contact)
-				_, err = k.DoPing(FrontContact.NodeID, FrontContact.Host)
-				if err != nil {
-					bucket.Remove(e)
-					bucket.PushBack(contact)
-				}else{
-					break
-				}
-			}
-		}
-	}
-}
+// func (k *Kademlia) UpdateRoutingTable(contact *Contact){
+// 	prefixLength := contact.NodeID.Xor(k.SelfContact.NodeID).PrefixLen();
+// 	bucket := k.RoutingTable.Buckets[prefixLength]
+// 	for e := bucket.Front(); e != nil; e = e.Next(){
+// 		if contact.NodeID == k.SelfContact.NodeID {
+// 			bucket.MoveToBack(e)
+// 			return
+// 		}else{
+// 			if bucket.Len() <= 20 {
+// 				bucket.PushBack(contact)
+// 			}else{
+// 				FrontContact := bucket.Front().Value.(Contact)
+// 				_, err = k.DoPing(FrontContact.NodeID, FrontContact.Host)
+// 				if err != nil {
+// 					bucket.Remove(e)
+// 					bucket.PushBack(contact)
+// 				}else{
+// 					break
+// 				}
+// 			}
+// 		}
+// 	}
+// }
+
+
 
 // For project 2!
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
