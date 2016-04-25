@@ -39,7 +39,8 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// Specify the sender
 	pong.Sender = k.kademlia.SelfContact
 	// Update contact, etc
-	// k.kademlia.ContactChan <- &ping.Sender
+	fmt.Println("Ping From : " + ping.Sender.NodeID.AsString())
+	k.kademlia.ContactChan <- &(ping.Sender)
 	return nil
 }
 
@@ -123,10 +124,9 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	// FindRet.KVSearchResChan = make(chan bool)
 	// k.KVSearchChan <- FindRet
 	// found := <- FindRet.KVSearchResChan
-	FindRet, found := k.kademlia.BoolLocalFindValue(req.Key)
-	res.Value = make([] byte, len(FindRet.Value))
+	_,found, Value := k.kademlia.BoolLocalFindValue(req.Key)
 	if found == true {
-		res.Value = FindRet.Value
+		res.Value = Value
 		return nil
 	}
 	res.Value = nil
