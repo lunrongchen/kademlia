@@ -92,6 +92,7 @@ func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	k.kademlia.FindNodeChan <- &newFindNode
 	s := 0
 	for i := range getContactChan {
+
 		res.Nodes[s] = *i
 		s = s + 1
 	}
