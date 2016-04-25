@@ -42,13 +42,6 @@ type KeyValueSet struct {
 	KVSearchResChan  chan bool
 }
 
-// func InitiRoutingTable (k *Kademlia) {
-//  	for i := 0; i < b; i++ {
-//  		k.RoutingTable.Buckets[i] = list.New()
-//  	}
-//  	k.RoutingTable.SelfContact = k.SelfContact
-//  }
-
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
@@ -56,10 +49,13 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.NodeID = nodeID
     k.HashTable = make(map[ID] []byte)
     // InitiRoutingTable(k)
-
+	for i := 0; i < b; i++ {
+ 		k.RoutingTable.Buckets[i] = list.New()
+ 	}
     k.ContactChan = make(chan * Contact)
     k.KeyValueChan = make(chan * KeyValueSet)
     k.KVSearchChan = make(chan * KeyValueSet)
+
 
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
@@ -297,31 +293,6 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
 	
 }
-// func (k *Kademlia) UpdateRoutingTable(contact *Contact){
-// 	prefixLength := contact.NodeID.Xor(k.SelfContact.NodeID).PrefixLen();
-// 	bucket := k.RoutingTable.Buckets[prefixLength]
-// 	for e := bucket.Front(); e != nil; e = e.Next(){
-// 		if contact.NodeID == k.SelfContact.NodeID {
-// 			bucket.MoveToBack(e)
-// 			return
-// 		}else{
-// 			if bucket.Len() <= 20 {
-// 				bucket.PushBack(contact)
-// 			}else{
-// 				FrontContact := bucket.Front().Value.(Contact)
-// 				_, err = k.DoPing(FrontContact.NodeID, FrontContact.Host)
-// 				if err != nil {
-// 					bucket.Remove(e)
-// 					bucket.PushBack(contact)
-// 				}else{
-// 					break
-// 				}
-// 			}
-// 		}
-// 	}
-// }
-
-
 
 // For project 2!
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
