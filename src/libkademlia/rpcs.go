@@ -38,9 +38,10 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// Specify the sender
 	pong.Sender = k.kademlia.SelfContact
 	// Update contact, etc
-	k.kademlia.ContactChan <- &ping.Sender
+	// k.kademlia.ContactChan <- &ping.Sender
 	return nil
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 // STORE
 ///////////////////////////////////////////////////////////////////////////////
@@ -58,12 +59,12 @@ type StoreResult struct {
 
 func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
-	// (*(*k.kademlia)).HashTable[req.Key] = req.Value
 	res.MsgID = CopyID(req.MsgID)
 	//get the key-value set from request
-    newKeyValueSet := KeyValueSet{req.Key,req.Value}
+    newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool)}
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
+	// update bucket contact list
 	k.kademlia.ContactChan <- &req.Sender
 	return nil
 }
@@ -85,18 +86,10 @@ type FindNodeResult struct {
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
+	foundContacts := k.kademlia.FindClosest(req.NodeID, 20)
 	res.MsgID = CopyID(req.MsgID)
-	//search closest nodes
-	getContactChan := make(chan *Contact)
-	newFindNode := FNodeChan{getContactChan,req.NodeID}
-	k.kademlia.FindNodeChan <- &newFindNode
-	s := 0
-	for i := range getContactChan {
-
-		res.Nodes[s] = *i
-		s = s + 1
-	}
-	k.kademlia.ContactChan <- &req.Sender	
+	res.Nodes = make([]Contact, len(foundContacts))
+	res.Nodes = foundContacts
 	return nil
 }
 
@@ -120,17 +113,21 @@ type FindValueResult struct {
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
-	k.kademlia.ContactChan <- &req.Sender
 	res.MsgID = CopyID(req.MsgID)
-	value,_ := k.kademlia.LocalFindValue(req.Key)
-	if value != nil {
-		res.Value = value
-	} else {
-		newres := FindNodeResult{res.MsgID,res.Nodes,res.Err}
-		newreq := FindNodeRequest{req.Sender,req.MsgID,req.Key}
-		k.FindNode(newreq, &newres)
-		res.Nodes = newres.Nodes
+
+	// FindRet := new(KeyValueSet)
+	// FindRet.Key = req.Key
+	// FindRet.KVSearchResChan = make(chan bool)
+	// k.KVSearchChan <- FindRet
+	// found := <- FindRet.KVSearchResChan
+	FindRet, found := k.kademlia.BoolLocalFindValue(req.Key)
+	res.Value = make([] byte, len(FindRet.Value))
+	if found == true {
+		res.Value = FindRet.Value
+		return nil
 	}
+	res.Value = nil
+	res.Nodes = k.kademlia.FindClosest(req.Key, 20)
 	return nil
 }
 
