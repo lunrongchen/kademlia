@@ -52,22 +52,16 @@ type KeyValueSetSearch struct {
 	Value 			chan []byte
 }
 
-func InitiRoutingTable (k *Kademlia) {
- 	for i := 0; i < b; i++ {
- 		k.RoutingTable.Buckets[i] = list.New()
- 	}
- 	k.RoutingTable.SelfContact = k.SelfContact
- }
-
-
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
 	k := new(Kademlia)
 	k.NodeID = nodeID
     k.HashTable = make(map[ID] []byte)
     k.RoutingTable = new(Router)
-    InitiRoutingTable(k)
-
+   // InitiRoutingTable(k)
+	for i := 0; i < b; i++ {
+ 		k.RoutingTable.Buckets[i] = list.New()
+ 	}
     k.ContactChan = make(chan * Contact)
     k.KeyValueChan = make(chan * KeyValueSet)
     k.KVSearchChan = make(chan * KeyValueSetSearch)
@@ -105,7 +99,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
-
+    k.RoutingTable.SelfContact = k.SelfContact
 	go handleRequest(k)
 
 	return k
@@ -151,6 +145,7 @@ func handleRequest(k *Kademlia) {
 
 func NewKademlia(laddr string) *Kademlia {
 	return NewKademliaWithId(laddr, NewRandomID())
+	// return nil
 }
 
 type ContactNotFoundError struct {
@@ -167,8 +162,8 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
-
 	}
+
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
 
