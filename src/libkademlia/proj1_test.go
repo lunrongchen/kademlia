@@ -140,7 +140,7 @@ func TestFindNode(t *testing.T) {
 	return
 }
 
-/*func TestFindValue(t *testing.T) {
+func TestFindValue(t *testing.T) {
 	// tree structure;
 	// A->B->tree
 	/*
@@ -149,7 +149,7 @@ func TestFindNode(t *testing.T) {
 	  A-B -- D
 	      \
 	         E
-	*
+	*/
 	instance1 := NewKademlia("localhost:7926")
 	instance2 := NewKademlia("localhost:7927")
 	host2, port2, _ := StringToIpPort("localhost:7927")
@@ -190,4 +190,4 @@ func TestFindNode(t *testing.T) {
 
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
-}*/
+}

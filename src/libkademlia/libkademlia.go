@@ -36,15 +36,14 @@ type Kademlia struct {
 type Router struct {
 	SelfContact 	Contact
 	Buckets     	[][]Contact
-	//Buckets   		[b]*list.List
 }
 
 
 type KeyValueSet struct {
-	Key 			 ID
-	Value 			 []byte
-	KVSearchResChan  chan bool	 
-	KVResult		 chan []byte
+	Key 			 	ID
+	Value 			 	[]byte
+	KVSearchBoolChan  	chan bool	 
+	KVSearchRestChan  	chan []byte
 }
 
 
@@ -122,7 +121,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 
 
 	if found == false {
-		if len(*bucket) < 20 {
+		if len(*bucket) <= 20 {
 			*bucket = append(*bucket, *contact)
 		} else {
 			_,err:=k.DoPing((*bucket)[0].Host,(*bucket)[0].Port)
@@ -153,16 +152,15 @@ func handleRequest(k *Kademlia) {
 		case kvset := <- k.KVSearchChan:
 			kvset.Value = k.HashTable[kvset.Key]
 			if kvset.Value == nil {
-				kvset.KVSearchResChan <- false
-				kvset.KVResult <- kvset.Value
+				kvset.KVSearchBoolChan <- false
+				kvset.KVSearchRestChan <- kvset.Value
 			} else {
-				kvset.KVSearchResChan <- true
-				kvset.KVResult <- kvset.Value
+				kvset.KVSearchBoolChan <- true
+				kvset.KVSearchRestChan <- kvset.Value
 			}
 		case bucketIndex := <- k.BucketsIndexChan:
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
 		}
-		fmt.Sprintf("ii")
 	}
 }
 
@@ -231,7 +229,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	}
 	fmt.Println("receive: " + pong.Sender.NodeID.AsString())
 	k.ContactChan <- &(&pong).Sender
-	// defer client.Close()
+	defer client.Close()
 	return nil, &CommandFailed{
 		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
 }
@@ -300,11 +298,11 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
 	res := new(KeyValueSet)
 	res.Key = searchKey
-	res.KVSearchResChan = make(chan bool)
-	res.KVResult = make(chan []byte)
+	res.KVSearchBoolChan = make(chan bool)
+	res.KVSearchRestChan = make(chan []byte)
 	k.KVSearchChan <- res
-	found := <- res.KVSearchResChan
-	Value := <- res.KVResult
+	found := <- res.KVSearchBoolChan
+	Value := <- res.KVSearchRestChan
 	if found == true {
 		return Value, nil
 	} 
@@ -314,11 +312,11 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found bool, Value []byte) {
 	result = new(KeyValueSet)
 	result.Key = searchKey
-	result.KVSearchResChan = make(chan bool)
-	result.KVResult = make(chan []byte)
+	result.KVSearchBoolChan = make(chan bool)
+	result.KVSearchRestChan = make(chan []byte)
 	k.KVSearchChan <- result
-	found = <- result.KVSearchResChan
-	Value = <- result.KVResult
+	found = <- result.KVSearchBoolChan
+	Value = <- result.KVSearchRestChan
 	return
 }
 
