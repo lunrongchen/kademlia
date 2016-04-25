@@ -136,7 +136,6 @@ func TestFindNode(t *testing.T) {
 	}
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
-
 	return
 }
 

@@ -60,7 +60,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
     k.BucketsIndexChan = make(chan int)
     k.BucketResultChan = make(chan []Contact)
     k.RoutingTable = new(Router)
-    k.RoutingTable.Buckets = make([][]Contact, IDBytes)
+    k.RoutingTable.Buckets = make([][]Contact, b)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -101,12 +101,16 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	fmt.Println("update finished")
 	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
-	if prefixLength >= 160 {
+	if prefixLength == 160 {
 		return
 	}
 	var tmpContact Contact
 	found := false
 	contactIndex := 0; 
+
+	fmt.Println("prefixLength: ", prefixLength)
+	fmt.Println("BucketsLength: ", len(k.RoutingTable.Buckets))
+	
 	bucket := &k.RoutingTable.Buckets[prefixLength]
 	
 	for x, value := range *bucket {
