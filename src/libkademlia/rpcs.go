@@ -86,8 +86,10 @@ type FindNodeResult struct {
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
+	foundContacts := k.kademlia.FindClosest(req.NodeID, 20)
 	res.MsgID = CopyID(req.MsgID)
-	//
+	res.Nodes = make([]Contact, len(foundContacts))
+	res.Nodes = foundContacts
 	return nil
 }
 
@@ -111,6 +113,21 @@ type FindValueResult struct {
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
+	res.MsgID = CopyID(req.MsgID)
+
+	// FindRet := new(KeyValueSet)
+	// FindRet.Key = req.Key
+	// FindRet.KVSearchResChan = make(chan bool)
+	// k.KVSearchChan <- FindRet
+	// found := <- FindRet.KVSearchResChan
+	FindRet, found := k.kademlia.BoolLocalFindValue(req.Key)
+	res.Value = make([] byte, len(FindRet.Value))
+	if found == true {
+		res.Value = FindRet.Value
+		return nil
+	}
+	res.Value = nil
+	res.Nodes = k.kademlia.FindClosest(req.Key, 20)
 	return nil
 }
 
