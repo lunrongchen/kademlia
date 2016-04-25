@@ -105,18 +105,18 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	return k
 }
 
-func (k *Kademlia) UpdateRoutingTable (CurTable *Router, contact *Contact){
-	prefixLength := contact.NodeID.Xor(CurTable.SelfContact.NodeID).PrefixLen();
-	bucket := CurTable.Buckets[prefixLength]
+func (k *Kademlia) UpdateRoutingTable (contact *Contact){
+	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
+	bucket := k.RoutingTable.Buckets[prefixLength]
 	for e := bucket.Front(); e != nil; e = e.Next(){
-		if contact.NodeID == CurTable.SelfContact.NodeID {
+		if contact.NodeID == e.Value.(Contact).NodeID {
 			bucket.MoveToBack(e)
 			return
 		}else{
-			if bucket.Len() <= k {
+			if bucket.Len() <= 20 {
 				bucket.PushBack(contact)
 				}else{
-				  &cont, err =	DoPing(bucket[0].NodeID, bucket[0].Host) //&contact???
+				  _, err :=	k.DoPing(bucket.Front().Value.(Contact).Host, bucket.Front().Value.(Contact).Port) 
 					if err != nil {
 						bucket.Remove(e)
 						bucket.PushBack(contact)
