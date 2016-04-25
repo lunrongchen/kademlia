@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strconv"
+	"sort"
 	"container/list"
 )
 
@@ -288,9 +289,42 @@ func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found 
 	return
 }
 
+type ContactDistance struct {
+	contact Contact
+	Dist    int
+}
+
+type ByDist []ContactDistance
+
 func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
-	
+	tempList := make([]ContactDistance, 0)
+	prefixLength := searchID.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
+	for i := 0; (prefixLength - i >= 0 || prefixLength + i < IDBytes) && len(tempList) < num; i++ {
+		if prefixLength == IDBytes && prefixLength - i == IDBytes {
+			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
+			continue
+		}
+		if prefixLength - i >= 0 {
+			bucket := k.RoutingTable.Buckets[prefixLength - i]
+			//todo
+			Distance(searchID, bucket, &tempList)
+		}
+		if prefixLength + i < IDBytes {
+			bucket := k.RoutingTable.Buckets[prefixLength + i]
+			//todo
+			Distance(searchID, bucket, &tempList)
+		}
+	}
+	sort.Sort(ByDist(tempList))
+	// sort.Sort(tempList)
+	if len(tempList) > num {
+		tempList = tempList[:num]
+	}
+	for _, value := range tempList {
+		result = append(result, value.contact)
+	}
+	return
 }
 
 // For project 2!
