@@ -64,7 +64,7 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
     newKeyValueSet := KeyValueSet{req.Key,req.Value}
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
-
+	k.kademlia.ContactChan <- &req.Sender
 	return nil
 }
 
@@ -86,7 +86,6 @@ type FindNodeResult struct {
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
-
 	//search closest nodes
 	getContactChan := make(chan *Contact)
 	newFindNode := FNodeChan{getContactChan,req.NodeID}
@@ -96,6 +95,7 @@ func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 		res.Nodes[s] = *i
 		s = s + 1
 	}
+	k.kademlia.ContactChan <- &req.Sender	
 	return nil
 }
 
@@ -119,16 +119,14 @@ type FindValueResult struct {
 
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
+	k.kademlia.ContactChan <- &req.Sender
 	res.MsgID = CopyID(req.MsgID)
-	getContactChan := make(chan *Contact)
-	newFindValue := FNodeChan{getContactChan,req.Key}
-	k.kademlia.FindNodeChan <- &newFindValue
-	s := 0
-	for i := range getContactChan {
-		res.Nodes[s] = *i
-		s = s + 1
+	value,_ := k.kademlia.LocalFindValue()
+	if value != []byte("") {
+		res.Value = value
+	} else {
+		k.FindNode(req, res)
 	}
-	return nil
 }
 
 // For Project 3

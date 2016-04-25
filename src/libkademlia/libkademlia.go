@@ -27,7 +27,7 @@ type Kademlia struct {
 	HashTable   	map[ID][]byte
 	ContactChan		chan *Contact
 	KeyValueChan	chan *KeyValueSet
-	KVSearchChan	chan *KeyValueSet
+	KVSearchChan	chan *KeyValueSetSearch
     FindNodeChan	chan *FNodeChan
 }
 
@@ -47,10 +47,16 @@ type KeyValueSet struct {
 	Value 			[]byte
 }
 
-func InitiRoutingTable (RoutingTable *Router) {
+type KeyValueSetSearch struct {
+	Key 			ID
+	Value 			*[]byte
+}
+
+func InitiRoutingTable (k *Kademlia) {
  	for i := 0; i < b; i++ {
- 		RoutingTable.Buckets[i] = list.New()
+ 		k.RoutingTable.Buckets[i] = list.New()
  	}
+ 	k.RoutingTable.SelfContact = k.SelfContact
  }
 
 
@@ -60,7 +66,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.NodeID = nodeID
     k.HashTable = make(map[ID] []byte)
     k.RoutingTable = new(Router)
-    InitiRoutingTable(k.RoutingTable)
+    InitiRoutingTable(k)
 
     k.ContactChan = make(chan * Contact)
     k.KeyValueChan = make(chan * KeyValueSet)
@@ -120,7 +126,7 @@ func (k *Kademlia) UpdateRoutingTable (contact *Contact){
 					if err != nil {
 						bucket.Remove(e)
 						bucket.PushBack(contact)
-					}else{
+					} else {
 						break
 					}
 				}
@@ -131,8 +137,8 @@ func (k *Kademlia) UpdateRoutingTable (contact *Contact){
 func handleRequest(k *Kademlia) {
 	for {
 		select {
-		// case contact := <- k.ContactChan:
-			// k.RoutingTable.update(contact)
+	    case contact := <- k.ContactChan:
+			k.UpdateRoutingTable(contact)
 		case kvset := <-k.KeyValueChan:
 			k.HashTable[kvset.Key] = kvset.Value
 		// case kvset := <- k.KVSearchChan:
@@ -188,7 +194,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
 	}
-	err = client.Call("KademliaCore.Ping", ping, &pong)
+	err = client.Call("KademliaRPC.Ping", ping, &pong)
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed{
@@ -263,12 +269,15 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
-	for keys := range k.HashTable {
-		if keys == searchKey { 
-			fmt.Print(k.HashTable[keys])
-		}
-	}
+	valueChan := make(chan []byte(""))
+	KVSet := KeyValueSetSearch{ID,valueChan}
+	k.KVSearchChan <- KVSet
+	value := <- valueChan
+	if value != []byte("") {
+		return value,&CommandFailed{"FindLocalValue implemented"}
+	} else {
 	return []byte(""), &CommandFailed{"Not implemented"}
+}
 }
 
 // For project 2!
