@@ -190,7 +190,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
 	}
-	defer client.Close()
+	
 	err = client.Call("KademliaRPC.Ping", ping, &pong)
 	if err != nil {
 		log.Fatal("Call: ", err)
@@ -198,6 +198,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
 	}
 	// k.ContactChan <- &(&pong).Sender
+	defer client.Close()
 	return nil, &CommandFailed{
 		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
 }
@@ -212,12 +213,13 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
 	}
-	defer client.Close()
+	
 	err = client.Call("KademliaRPC.Store", req, &res)
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return &CommandFailed{"Not implemented"}
 	}
+	defer client.Close()
 	return &CommandFailed{"Store implemented"}
 }
 
