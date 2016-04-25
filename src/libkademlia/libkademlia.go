@@ -56,7 +56,6 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
     k.KeyValueChan = make(chan * KeyValueSet)
     k.KVSearchChan = make(chan * KeyValueSet)
 
-
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -158,15 +157,15 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
-	// } else {
-	// 	recID :=k.SelfContact.NodeID.Xor(nodeId)
-	// 	nzero := recID.PrefixLen()
- //        for e := k.RoutingTable.Buckets[b-nzero-1].Front(); e != nil; e = e.Next() {
- //        	if e.Value.(Contact).NodeID == nodeId {
+	} else {
+		recID :=k.SelfContact.NodeID.Xor(nodeId)
+		prefix_zero := recID.PrefixLen()
+        for e := k.RoutingTable.Buckets[b-prefix_zero-1].Front(); e != nil; e = e.Next() {
+        	if e.Value.(Contact).NodeID == nodeId {
  //        		// k.ContactChan <- &e.Value
- //        		return *(e.Value.(Contact)), nil
- //        	}
- //        }
+        		return (e.Value.(Contact)), nil
+        	}
+        }
 	}
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
