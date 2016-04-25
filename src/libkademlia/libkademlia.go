@@ -284,6 +284,19 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	return []byte(""), &CommandFailed{"Not implemented"}
 }
 
+func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found bool) {
+	result = new(KeyValueSet)
+	result.Key = searchKey
+	result.KVSearchResChan = make(chan bool)
+	k.KVSearchChan <- result
+	found = <- result.KVSearchResChan
+	return
+}
+
+func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
+	result = make([]Contact, 0)
+	
+}
 // func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 // 	prefixLength := contact.NodeID.Xor(k.SelfContact.NodeID).PrefixLen();
 // 	bucket := k.RoutingTable.Buckets[prefixLength]
