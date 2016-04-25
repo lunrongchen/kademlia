@@ -37,15 +37,17 @@ type Router struct {
 
 
 type KeyValueSet struct {
-	Key 			ID
-	Value 			[]byte
+	Key 			 ID
+	Value 			 []byte
+	KVSearchResChan  chan bool
 }
 
-// func InitiRoutingTable (RoutingTable *Router) {
-// 	for i := 0; i < b; i++ {
-// 		RoutingTable.Buckets[i] = list.New()
-// 	}
-// }
+// func InitiRoutingTable (k *Kademlia) {
+//  	for i := 0; i < b; i++ {
+//  		k.RoutingTable.Buckets[i] = list.New()
+//  	}
+//  	k.RoutingTable.SelfContact = k.SelfContact
+//  }
 
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
@@ -53,7 +55,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 	k.NodeID = nodeID
     k.HashTable = make(map[ID] []byte)
-    // InitiRoutingTable(k.RoutingTable)
+    // InitiRoutingTable(k)
 
     k.ContactChan = make(chan * Contact)
     k.KeyValueChan = make(chan * KeyValueSet)
@@ -97,27 +99,28 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	return k
 }
 
-func (k *Kademlia) UpdateRoutingTable (contact *Contact){
-	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
-	bucket := k.RoutingTable.Buckets[prefixLength]
-	for e := bucket.Front(); e != nil; e = e.Next(){
-		if contact.NodeID == e.Value.(Contact).NodeID {
-			bucket.MoveToBack(e)
-			return
-		}else{
-			if bucket.Len() <= 20 {
-				bucket.PushBack(contact)
-				}else{
-				  _, err :=	k.DoPing(bucket.Front().Value.(Contact).Host, bucket.Front().Value.(Contact).Port) 
-					if err != nil {
-						bucket.Remove(e)
-						bucket.PushBack(contact)
-					}else{
-						break
-					}
-				}
-			}
-	}
+func (k *Kademlia) UpdateRoutingTable(contact *Contact){
+	fmt.Sprintf("update finished")
+	// prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
+	// bucket := &k.RoutingTable.Buckets[prefixLength]
+	// for e := (*bucket).Front(); e != nil; e = e.Next(){
+	// 	if contact.NodeID == e.Value.(Contact).NodeID {
+	// 		(*bucket).MoveToBack(e)
+	// 		return
+	// 	}else{
+	// 		if (*bucket).Len() <= 20 {
+	// 			(*bucket).PushBack(contact)
+	// 			}else{
+	// 			  _, err :=	k.DoPing((*bucket).Front().Value.(Contact).Host, (*bucket).Front().Value.(Contact).Port) 
+	// 				if err != nil {
+	// 					(*bucket).Remove(e)
+	// 					(*bucket).PushBack(contact)
+	// 				}else{
+	// 					break
+	// 				}
+	// 			}
+	// 		}
+	// }
 }
 
 
@@ -128,8 +131,13 @@ func handleRequest(k *Kademlia) {
 			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
 			k.HashTable[kvset.Key] = kvset.Value
-		// case kvset := <- k.KVSearchChan:
-			//todo
+		case kvset := <- k.KVSearchChan:
+			kvset.Value = k.HashTable[kvset.Key]
+			if kvset.Value == nil {
+				kvset.KVSearchResChan <- false
+			} else {
+				kvset.KVSearchResChan <- true
+			}
 		}
 		fmt.Sprintf("ii")
 	}
@@ -158,9 +166,9 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// 	recID :=k.SelfContact.NodeID.Xor(nodeId)
 	// 	nzero := recID.PrefixLen()
  //        for e := k.RoutingTable.Buckets[b-nzero-1].Front(); e != nil; e = e.Next() {
- //        	if e.Value.NodeID == nodeId {
- //        		k.ContactChan <- &e.Value
- //        		return &e.Value,nil
+ //        	if e.Value.(Contact).NodeID == nodeId {
+ //        		// k.ContactChan <- &e.Value
+ //        		return *(e.Value.(Contact)), nil
  //        	}
  //        }
 	}
@@ -265,6 +273,14 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
+	res := new(KeyValueSet)
+	res.Key = searchKey
+	res.KVSearchResChan = make(chan bool)
+	k.KVSearchChan <- res
+	found := <- res.KVSearchResChan
+	if found == true {
+		return []byte(""), &CommandFailed{"LocalFindValue implemented"}
+	}
 	return []byte(""), &CommandFailed{"Not implemented"}
 }
 

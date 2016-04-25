@@ -61,7 +61,7 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
 	//get the key-value set from request
-    newKeyValueSet := KeyValueSet{req.Key,req.Value}
+    newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool)}
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
 	// update bucket contact list
@@ -86,6 +86,8 @@ type FindNodeResult struct {
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
+	res.MsgID = CopyID(req.MsgID)
+	//
 	return nil
 }
 
