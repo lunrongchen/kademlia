@@ -6,6 +6,7 @@ package libkademlia
 
 import (
 	"net"
+	"fmt"
 )
 
 type KademliaRPC struct {
@@ -38,7 +39,8 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// Specify the sender
 	pong.Sender = k.kademlia.SelfContact
 	// Update contact, etc
-	// k.kademlia.ContactChan <- &ping.Sender
+	fmt.Println("Ping From : " + ping.Sender.NodeID.AsString())
+	k.kademlia.ContactChan <- &(ping.Sender)
 	return nil
 }
 
@@ -61,11 +63,12 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
 	//get the key-value set from request
-    newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool)}
+    newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool),make(chan []byte)}
+    fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
 	// update bucket contact list
-	k.kademlia.ContactChan <- &req.Sender
+	k.kademlia.ContactChan <- &(req.Sender)
 	return nil
 }
 
@@ -90,6 +93,7 @@ func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	res.MsgID = CopyID(req.MsgID)
 	res.Nodes = make([]Contact, len(foundContacts))
 	res.Nodes = foundContacts
+	k.kademlia.ContactChan <- &(req.Sender)
 	return nil
 }
 
@@ -120,14 +124,14 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	// FindRet.KVSearchResChan = make(chan bool)
 	// k.KVSearchChan <- FindRet
 	// found := <- FindRet.KVSearchResChan
-	FindRet, found := k.kademlia.BoolLocalFindValue(req.Key)
-	res.Value = make([] byte, len(FindRet.Value))
+	_,found, Value := k.kademlia.BoolLocalFindValue(req.Key)
 	if found == true {
-		res.Value = FindRet.Value
+		res.Value = Value
 		return nil
 	}
 	res.Value = nil
 	res.Nodes = k.kademlia.FindClosest(req.Key, 20)
+	k.kademlia.ContactChan <- &(req.Sender)
 	return nil
 }
 
