@@ -236,8 +236,9 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	}
 	// k.ContactChan <- &(&pong).Sender
 	defer client.Close()
-	return nil, &CommandFailed{
-		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
+	return &k.SelfContact, nil
+	// return nil, &CommandFailed{
+	// 	"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
