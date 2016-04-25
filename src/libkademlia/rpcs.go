@@ -64,7 +64,8 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
     newKeyValueSet := KeyValueSet{req.Key,req.Value}
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
-
+	// update bucket contact list
+	k.kademlia.ContactChan <- &req.Sender
 	return nil
 }
 
