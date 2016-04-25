@@ -11,6 +11,7 @@ import (
 	"net/rpc"
 	"strconv"
 	"sort"
+	//"container/list"
 )
 
 const (
@@ -35,6 +36,7 @@ type Kademlia struct {
 type Router struct {
 	SelfContact 	Contact
 	Buckets     	[][]Contact
+	//Buckets   		[b]*list.List
 }
 
 
@@ -96,7 +98,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	fmt.Println("update finished")
-	prefixLength := contact.NodeID.Xor(k.SelfContact.NodeID).PrefixLen()
+	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
 	if prefixLength >= 160 {
 		return
 	}
@@ -113,21 +115,37 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 			break
 		}
 	}
+	fmt.Println("update finished2")
+	// if found == true {
+	// 	if len(*bucket) <= 20 {
+	// 		*bucket = append(*bucket, *contact)
+	// 	} else {
+	// 		checkBucket(bucket, contact, &k.SelfContact)
+	// 	}
+	// } else {
+	// 	*bucket = append((*bucket)[:contactIndex], (*bucket)[contactIndex:]...)
+	// 	*bucket = append(*bucket, tmpContact)
+	// }
 
-	if found == true {
-		if len(*bucket) <= 20 {
+	if found == false {
+		if len(*bucket) < 20 {
 			*bucket = append(*bucket, *contact)
 		} else {
-			checkBucket(bucket, contact, &k.SelfContact)
+			_,err:=k.DoPing((*bucket)[0].Host,(*bucket)[0].Port)
+			if err == nil  {
+				tmpContact := (*bucket)[0]
+				*bucket = (*bucket)[1:]
+				*bucket = append(*bucket, tmpContact)
+			}
 		}
 	} else {
-		*bucket = append((*bucket)[:contactIndex], (*bucket)[contactIndex:]...)
-		*bucket = append(*bucket, tmpContact)
+		*bucket = append((*bucket)[:contactIndex], (*bucket)[(contactIndex+1):]...)
+	 	*bucket = append(*bucket, tmpContact)
 	}
 }
 
 
-func checkBucket(bucket *[]Contact, contact *Contact, selfContact *Contact) {
+/*func checkBucket(bucket *[]Contact, contact *Contact, selfContact *Contact) {
 	ping := PingMessage{*selfContact, NewRandomID()}
 	var pong PongMessage
 	found := false
@@ -149,7 +167,7 @@ func checkBucket(bucket *[]Contact, contact *Contact, selfContact *Contact) {
 		*bucket = (*bucket)[1:]
 		*bucket = append(*bucket, tmpContact)
 	}
-}
+}*/
 
 func handleRequest(k *Kademlia) {
 	for {
