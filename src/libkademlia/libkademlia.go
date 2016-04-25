@@ -11,7 +11,6 @@ import (
 	"net/rpc"
 	"strconv"
 	"sort"
-	"container/list"
 )
 
 const (
@@ -22,18 +21,20 @@ const (
 
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
-	NodeID     		ID
-	SelfContact 	Contact
-	RoutingTable 	*Router
-	HashTable   	map[ID][]byte
-	ContactChan		chan *Contact
-	KeyValueChan	chan *KeyValueSet
-	KVSearchChan	chan *KeyValueSet
+	NodeID     				ID
+	SelfContact 			Contact
+	RoutingTable 			*Router
+	HashTable   			map[ID][]byte
+	ContactChan				chan *Contact
+	KeyValueChan			chan *KeyValueSet
+	KVSearchChan			chan *KeyValueSet
+	BucketsIndexChan		chan int
+	BucketResultChan 		chan []Contact
 }
 
 type Router struct {
 	SelfContact 	Contact
-	Buckets     	[b]*list.List
+	Buckets     	[][]Contact
 }
 
 
@@ -49,14 +50,11 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 	k.NodeID = nodeID
     k.HashTable = make(map[ID] []byte)
-    // InitiRoutingTable(k)
-	for i := 0; i < b; i++ {
- 		k.RoutingTable.Buckets[i] = list.New()
- 	}
     k.ContactChan = make(chan * Contact)
     k.KeyValueChan = make(chan * KeyValueSet)
     k.KVSearchChan = make(chan * KeyValueSet)
-
+    k.BucketsIndexChan = make(chan int)
+    k.BucketResultChan = make(chan []Contact)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -97,26 +95,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	fmt.Sprintf("update finished")
-	// prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
-	// bucket := &k.RoutingTable.Buckets[prefixLength]
-	// for e := (*bucket).Front(); e != nil; e = e.Next(){
-	// 	if contact.NodeID == e.Value.(Contact).NodeID {
-	// 		(*bucket).MoveToBack(e)
-	// 		return
-	// 	}else{
-	// 		if (*bucket).Len() <= 20 {
-	// 			(*bucket).PushBack(contact)
-	// 			}else{
-	// 			  _, err :=	k.DoPing((*bucket).Front().Value.(Contact).Host, (*bucket).Front().Value.(Contact).Port) 
-	// 				if err != nil {
-	// 					(*bucket).Remove(e)
-	// 					(*bucket).PushBack(contact)
-	// 				}else{
-	// 					break
-	// 				}
-	// 			}
-	// 		}
-	// }
+	
 }
 
 
@@ -134,6 +113,8 @@ func handleRequest(k *Kademlia) {
 			} else {
 				kvset.KVSearchResChan <- true
 			}
+		case bucketIndex := <- k.BucketsIndexChan:
+			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
 		}
 		fmt.Sprintf("ii")
 	}
@@ -158,15 +139,15 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
-	} else {
-		recID :=k.SelfContact.NodeID.Xor(nodeId)
-		prefix_zero := recID.PrefixLen()
-        for e := k.RoutingTable.Buckets[b-prefix_zero-1].Front(); e != nil; e = e.Next() {
-        	if e.Value.(Contact).NodeID == nodeId {
- //        		// k.ContactChan <- &e.Value
-        		return (e.Value.(Contact)), nil
-        	}
-        }
+	}
+	prefixLength := nodeId.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
+	k.BucketsIndexChan <- prefixLength
+	bucket := <- k.BucketResultChan
+	for _, value := range bucket{
+		if value.NodeID.Equals(nodeId) {
+			k.ContactChan <- &value
+			return &value, nil
+		}
 	}
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
@@ -290,11 +271,10 @@ func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found 
 }
 
 type ContactDistance struct {
-	contact Contact
-	Dist    int
+	contact 		Contact
+	distance    	int
 }
 
-type ByDist []ContactDistance
 
 func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
@@ -307,17 +287,14 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 		}
 		if prefixLength - i >= 0 {
 			bucket := k.RoutingTable.Buckets[prefixLength - i]
-			//todo
 			Distance(searchID, bucket, &tempList)
 		}
 		if prefixLength + i < IDBytes {
 			bucket := k.RoutingTable.Buckets[prefixLength + i]
-			//todo
 			Distance(searchID, bucket, &tempList)
 		}
 	}
 	sort.Sort(ByDist(tempList))
-	// sort.Sort(tempList)
 	if len(tempList) > num {
 		tempList = tempList[:num]
 	}
