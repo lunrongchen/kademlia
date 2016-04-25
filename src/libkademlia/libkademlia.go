@@ -106,7 +106,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 }
 
 func (k *Kademlia) UpdateRoutingTable (contact *Contact){
-	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
+	prefixLength := (contact.NodeID.Xor(k.NodeID)).PrefixLen();
 	bucket := k.RoutingTable.Buckets[prefixLength]
 	for e := bucket.Front(); e != nil; e = e.Next(){
 		if contact.NodeID == e.Value.(Contact).NodeID {
@@ -163,7 +163,14 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
 	}
-
+	getContact := make(chan *Contact)
+	newFindContact := FNodeChan{getContact,nodeId}
+	k.FindNodeChan <- &newFindContact
+    for i := range getContact {
+    	if (*i).NodeID == nodeId {
+    		return i, &ContactNotFoundError{nodeId, "Node found"}
+    	}
+	}
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
 
