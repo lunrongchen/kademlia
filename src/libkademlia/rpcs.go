@@ -121,12 +121,16 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	// TODO: Implement.
 	k.kademlia.ContactChan <- &req.Sender
 	res.MsgID = CopyID(req.MsgID)
-	value,_ := k.kademlia.LocalFindValue()
-	if value != []byte("") {
+	value,_ := k.kademlia.LocalFindValue(req.Key)
+	if value != nil {
 		res.Value = value
 	} else {
-		k.FindNode(req, res)
+		newres := FindNodeResult{res.MsgID,res.Nodes,res.Err}
+		newreq := FindNodeRequest{req.Sender,req.MsgID,req.Key}
+		k.FindNode(newreq, &newres)
+		res.Nodes = newres.Nodes
 	}
+	return nil
 }
 
 // For Project 3

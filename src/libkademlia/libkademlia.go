@@ -49,7 +49,7 @@ type KeyValueSet struct {
 
 type KeyValueSetSearch struct {
 	Key 			ID
-	Value 			*[]byte
+	Value 			chan []byte
 }
 
 func InitiRoutingTable (k *Kademlia) {
@@ -70,7 +70,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 
     k.ContactChan = make(chan * Contact)
     k.KeyValueChan = make(chan * KeyValueSet)
-    k.KVSearchChan = make(chan * KeyValueSet)
+    k.KVSearchChan = make(chan * KeyValueSetSearch)
     k.FindNodeChan = make(chan *FNodeChan)
 
 	// Set up RPC server
@@ -269,14 +269,14 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement
-	valueChan := make(chan []byte(""))
-	KVSet := KeyValueSetSearch{ID,valueChan}
-	k.KVSearchChan <- KVSet
+	valueChan := make(chan []byte)
+	KVSet := KeyValueSetSearch{searchKey,valueChan}
+	k.KVSearchChan <- &KVSet
 	value := <- valueChan
-	if value != []byte("") {
+	if value != nil {
 		return value,&CommandFailed{"FindLocalValue implemented"}
 	} else {
-	return []byte(""), &CommandFailed{"Not implemented"}
+	return nil, &CommandFailed{"Not implemented"}
 }
 }
 
