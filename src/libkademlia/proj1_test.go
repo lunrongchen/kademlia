@@ -1,7 +1,7 @@
 package libkademlia
 
 import (
-	"bytes"
+	//"bytes"
 	"net"
 	"strconv"
 	"testing"
@@ -42,6 +42,11 @@ func TestPing(t *testing.T) {
 			"1 in its buckets before ping instance 1")
 	}
 	instance1.DoPing(host2, port2)
+	contact2, err = instance2.FindContact(instance1.NodeID)
+	if err != nil {
+		t.Error("Instance 2 should be able to find instance" +
+			"1 in its buckets before ping instance 1")
+	}
 	contact2, err = instance1.FindContact(instance2.NodeID)
 	if err != nil {
 		t.Error("Instance 2's contact not found in Instance 1's contact list")
@@ -67,7 +72,7 @@ func TestPing(t *testing.T) {
 	return
 }
 
-func TestStore(t *testing.T) {
+/*func TestStore(t *testing.T) {
 	// test Dostore() function and LocalFindValue() function
 	instance1 := NewKademlia("localhost:7892")
 	instance2 := NewKademlia("localhost:7893")
@@ -92,9 +97,9 @@ func TestStore(t *testing.T) {
 		t.Error("Stored value did not match found value")
 	}
 	return
-}
+}*/
 
-func TestFindNode(t *testing.T) {
+/*func TestFindNode(t *testing.T) {
 	// tree structure;
 	// A->B->tree
 	/*
@@ -103,7 +108,7 @@ func TestFindNode(t *testing.T) {
 	  A-B -- D
 	      \
 	         E
-	*/
+	
 	instance1 := NewKademlia("localhost:7894")
 	instance2 := NewKademlia("localhost:7895")
 	host2, port2, _ := StringToIpPort("localhost:7895")
@@ -134,8 +139,8 @@ func TestFindNode(t *testing.T) {
 
 	return
 }
-
-func TestFindValue(t *testing.T) {
+*/
+/*func TestFindValue(t *testing.T) {
 	// tree structure;
 	// A->B->tree
 	/*
@@ -144,7 +149,7 @@ func TestFindValue(t *testing.T) {
 	  A-B -- D
 	      \
 	         E
-	*/
+	*
 	instance1 := NewKademlia("localhost:7926")
 	instance2 := NewKademlia("localhost:7927")
 	host2, port2, _ := StringToIpPort("localhost:7927")
@@ -182,7 +187,7 @@ func TestFindValue(t *testing.T) {
 	if contacts == nil || len(contacts) < 10 {
 		t.Error("Searching for a wrong ID did not return contacts")
 	}
-
+*/
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
-}
+//}

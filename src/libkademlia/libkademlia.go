@@ -55,6 +55,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
     k.KVSearchChan = make(chan * KeyValueSet)
     k.BucketsIndexChan = make(chan int)
     k.BucketResultChan = make(chan []Contact)
+    k.RoutingTable = new(Router)
+    k.RoutingTable.Buckets = make([][]Contact, IDBytes)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -87,15 +89,13 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 		}
 	}
 	k.SelfContact = Contact{k.NodeID, host, uint16(port_int)}
-	k.RoutingTable = new(Router)
 	k.RoutingTable.SelfContact = k.SelfContact
-	k.RoutingTable.Buckets = make([][]Contact, IDBytes)
 	go handleRequest(k)
 	return k
 }
 
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
-	fmt.Sprintf("update finished")
+	fmt.Println("update finished")
 	prefixLength := contact.NodeID.Xor(k.SelfContact.NodeID).PrefixLen()
 	if prefixLength >= 160 {
 		return
@@ -154,7 +154,8 @@ func checkBucket(bucket *[]Contact, contact *Contact, selfContact *Contact) {
 func handleRequest(k *Kademlia) {
 	for {
 		select {
-		case contact := <- k.ContactChan:
+		case contact := <- k.ContactChan: 
+			fmt.Println("get from channel : " + contact.NodeID.AsString())
 			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
 			k.HashTable[kvset.Key] = kvset.Value
@@ -219,6 +220,7 @@ func ConbineHostIP(host net.IP, port uint16) string {
 func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	// TODO: Implement
 	ping := new(PingMessage)
+	ping.Sender = k.SelfContact
 	ping.MsgID = NewRandomID()
 	var pong PongMessage
 
@@ -234,8 +236,9 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 		return nil, &CommandFailed{
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
 	}
-	// k.ContactChan <- &(&pong).Sender
-	defer client.Close()
+	fmt.Println("receive: " + pong.Sender.NodeID.AsString())
+	k.ContactChan <- &(&pong).Sender
+	// defer client.Close()
 	return nil, &CommandFailed{
 		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
 }
