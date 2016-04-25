@@ -28,7 +28,6 @@ type Kademlia struct {
 	ContactChan		chan *Contact
 	KeyValueChan	chan *KeyValueSet
 	KVSearchChan	chan *KeyValueSet
-	//deal with routing table
     FindNodeChan	chan *FNodeChan
 }
 
@@ -60,11 +59,13 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 	k.NodeID = nodeID
     k.HashTable = make(map[ID] []byte)
-    // InitiRoutingTable(k.RoutingTable)
+    k.RoutingTable = new(Router)
+    InitiRoutingTable(k.RoutingTable)
 
     k.ContactChan = make(chan * Contact)
     k.KeyValueChan = make(chan * KeyValueSet)
     k.KVSearchChan = make(chan * KeyValueSet)
+    k.FindNodeChan = make(chan *FNodeChan)
 
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
@@ -104,6 +105,29 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	return k
 }
 
+func (k *Kademlia) UpdateRoutingTable (CurTable *Router, contact *Contact){
+	prefixLength := contact.NodeID.Xor(CurTable.SelfContact.NodeID).PrefixLen();
+	bucket := CurTable.Buckets[prefixLength]
+	for e := bucket.Front(); e != nil; e = e.Next(){
+		if contact.NodeID == CurTable.SelfContact.NodeID {
+			bucket.MoveToBack(e)
+			return
+		}else{
+			if bucket.Len() <= k {
+				bucket.PushBack(contact)
+				}else{
+				  &cont, err =	DoPing(bucket[0].NodeID, bucket[0].Host) //&contact???
+					if err != nil {
+						bucket.Remove(e)
+						bucket.PushBack(contact)
+					}else{
+						break
+					}
+				}
+			}
+	}
+}
+
 func handleRequest(k *Kademlia) {
 	for {
 		select {
@@ -137,15 +161,7 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	// Find contact with provided ID
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
-	// } else {
-	// 	recID :=k.SelfContact.NodeID.Xor(nodeId)
-	// 	nzero := recID.PrefixLen()
- //        for e := k.RoutingTable.Buckets[b-nzero-1].Front(); e != nil; e = e.Next() {
- //        	if e.Value.NodeID == nodeId {
- //        		k.ContactChan <- &e.Value
- //        		return &e.Value,nil
- //        	}
- //        }
+
 	}
 	return nil, &ContactNotFoundError{nodeId, "Not found"}
 }
@@ -186,73 +202,64 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 	// TODO: Implement
-	return &CommandFailed{"Not implemented"}
+	req := StoreRequest{k.SelfContact, NewRandomID(), key, value}
+	var res StoreResult
+
+	port_str := strconv.Itoa(int(contact.Port))
+	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+	}
+	defer client.Close()
+	err = client.Call("KademliaRPC.Store", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return &CommandFailed{"Not implemented"}
+	}
+	return &CommandFailed{"Store implemented"}
 }
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
 	// TODO: Implement
-	return nil, &CommandFailed{"Not implemented"}
+	req := FindNodeRequest{k.SelfContact, NewRandomID(), searchKey}
+	var res FindNodeResult
+
+	port_str := strconv.Itoa(int(contact.Port))
+	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+	}
+	defer client.Close()
+	err = client.Call("KademliaRPC.FindNode", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return nil, &CommandFailed{"Not implemented"}
+
+	}
+	return nil, &CommandFailed{"FindNode implemented"}
 }
 
 func (k *Kademlia) DoFindValue(contact *Contact,
 	searchKey ID) (value []byte, contacts []Contact, err error) {
 	// TODO: Implement
-	return nil, nil, &CommandFailed{"Not implemented"}
+	req := FindValueRequest{*contact, NewRandomID(), searchKey}
+	res := new(FindValueResult)
+
+	port_str := strconv.Itoa(int(contact.Port))
+	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+	}
+	defer client.Close()
+	err = client.Call("KademliaRPC.FindValue", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		return nil, nil, &CommandFailed{"Not implemented"}
+	}
+	return nil, nil, &CommandFailed{"FindValue implemented"}
 }
 
 
-// func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
-// 	// TODO: Implement
-// 	hostname, port, err := net.SplitHostPort(firstPeerStr)
-// 	client, err := rpc.DialHTTPPath("tcp", firstPeerStr,
-// 		rpc.DefaultRPCPath+port)
-// 	if err != nil {
-// 		log.Fatal("DialHTTP: ", err)
-// 	}
-
-// 	log.Printf("Store Key and Value\n")
-
-// 	store := new(StoreRequest)
-// 	store.MsgID = NewRandomID()
-// 	var storeResult StoreResult
-// 	err = client.Call("KademliaRPC.Store",store, &storeResult)
-// 	if err != nil {
-// 		log.Fatal("Call:", err)
-// 		return nil, &CommandFailed{
-// 		"Unable to store " + fmt.Sprintf("%s:%v", host.String(), port)}
-// 	}
-
-// 	fmt.Printf("Store msgID: %s\n", store.MsgID.AsString())
-// }
-
-// func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
-// 	// TODO: Implement
-// 	findNode := new(FindNodeRequest)
-// 	findNode.MsgID = NewRandomID()
-// 	var findNodeResult FindNodeResult
-// 	err = client.Call("KademliaRPC.FindNode",findNode, &findNodeResult)
-// 	if err != nil {
-// 		log.Fatal("Call:", err)
-// 		return nil, &CommandFailed{
-// 		"Unable to findNode " + fmt.Sprintf("%s:%v", host.String(), port)}
-// 	}
-// 	fmt.Printf("Store msgID: %s\n", findNode.MsgID.AsString())
-// }
-
-// func (k *Kademlia) DoFindValue(contact *Contact,
-// 	searchKey ID) (value []byte, contacts []Contact, err error) {
-// 	// TODO: Implement
-// 	findValue := new(FindValueRequest)
-// 	findValue.MsgID = NewRandomID()
-// 	var findValueResult FindValueResult
-// 	err = client.Call("KademliaRPC.FindValue",findValue, &findValueResult)
-// 	if err != nil {
-// 		log.Fatal("Call:", err)
-// 		return nil, &CommandFailed{
-// 		"Unable to findValue " + fmt.Sprintf("%s:%v", host.String(), port)}
-// 	}
-// 	fmt.Printf("Store msgID: %s\n", findValue.MsgID.AsString())
-// }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	// TODO: Implement

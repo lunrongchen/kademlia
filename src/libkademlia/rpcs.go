@@ -86,8 +86,7 @@ type FindNodeResult struct {
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
-	// distance := k.kademlia.NodeID.Xor(req.NodeID)
-	// nzero := distance.PrefixLen()
+
 	//search closest nodes
 	getContactChan := make(chan *Contact)
 	newFindNode := FNodeChan{getContactChan,req.NodeID}
