@@ -1,7 +1,7 @@
 package libkademlia
 
 import (
-	//"bytes"
+	"bytes"
 	"net"
 	"strconv"
 	"testing"
@@ -72,7 +72,7 @@ func TestPing(t *testing.T) {
 	return
 }
 
-/*func TestStore(t *testing.T) {
+func TestStore(t *testing.T) {
 	// test Dostore() function and LocalFindValue() function
 	instance1 := NewKademlia("localhost:7892")
 	instance2 := NewKademlia("localhost:7893")
@@ -97,9 +97,9 @@ func TestPing(t *testing.T) {
 		t.Error("Stored value did not match found value")
 	}
 	return
-}*/
+}
 
-/*func TestFindNode(t *testing.T) {
+func TestFindNode(t *testing.T) {
 	// tree structure;
 	// A->B->tree
 	/*
@@ -108,7 +108,7 @@ func TestPing(t *testing.T) {
 	  A-B -- D
 	      \
 	         E
-	
+	*/
 	instance1 := NewKademlia("localhost:7894")
 	instance2 := NewKademlia("localhost:7895")
 	host2, port2, _ := StringToIpPort("localhost:7895")
@@ -139,7 +139,7 @@ func TestPing(t *testing.T) {
 
 	return
 }
-*/
+
 /*func TestFindValue(t *testing.T) {
 	// tree structure;
 	// A->B->tree
