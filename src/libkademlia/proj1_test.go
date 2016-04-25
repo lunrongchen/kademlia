@@ -187,7 +187,7 @@ func TestFindNode(t *testing.T) {
 	if contacts == nil || len(contacts) < 10 {
 		t.Error("Searching for a wrong ID did not return contacts")
 	}
-*/
+
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
-//}
+}*/

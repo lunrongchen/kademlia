@@ -273,7 +273,7 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 		return nil, &CommandFailed{"Not implemented"}
 
 	}
-	return nil, &CommandFailed{"FindNode implemented"}
+	return res.Nodes, nil
 }
 
 func (k *Kademlia) DoFindValue(contact *Contact,

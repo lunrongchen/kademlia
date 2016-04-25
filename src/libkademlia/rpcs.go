@@ -123,14 +123,14 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	// FindRet.KVSearchResChan = make(chan bool)
 	// k.KVSearchChan <- FindRet
 	// found := <- FindRet.KVSearchResChan
-/*	FindRet, found := k.kademlia.BoolLocalFindValue(req.Key)
+	FindRet, found := k.kademlia.BoolLocalFindValue(req.Key)
 	res.Value = make([] byte, len(FindRet.Value))
 	if found == true {
 		res.Value = FindRet.Value
 		return nil
 	}
 	res.Value = nil
-	res.Nodes = k.kademlia.FindClosest(req.Key, 20)*/
+	res.Nodes = k.kademlia.FindClosest(req.Key, 20)
 	return nil
 }
 
