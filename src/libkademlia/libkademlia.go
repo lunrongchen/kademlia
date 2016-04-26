@@ -99,7 +99,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 }
 
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
-	fmt.Println("update finished")
+	fmt.Println("update started")
 	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
 	if prefixLength == 160 {
 		return
@@ -108,9 +108,6 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	found := false
 	contactIndex := 0; 
 
-	fmt.Println("prefixLength: ", prefixLength)
-	fmt.Println("BucketsLength: ", len(k.RoutingTable.Buckets))
-	
 	bucket := &k.RoutingTable.Buckets[prefixLength]
 	
 	for x, value := range *bucket {
@@ -121,7 +118,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 			break
 		}
 	}
-	fmt.Println("update finished2")
+	fmt.Println("update finished")
 
 
 	if found == false {
@@ -353,11 +350,13 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 			continue
 		}
 		if prefixLength - i >= 0 {
-			bucket := k.RoutingTable.Buckets[prefixLength - i]
+			k.BucketsIndexChan <- (prefixLength - i)
+			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
 		if prefixLength + i < IDBytes {
-			bucket := k.RoutingTable.Buckets[prefixLength + i]
+			k.BucketsIndexChan <- (prefixLength + i)
+			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
 	}
