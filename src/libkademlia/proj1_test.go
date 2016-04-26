@@ -189,4 +189,14 @@ func TestFindValue(t *testing.T) {
 
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
+	for i := 0; i < 10; i++ {
+		contacts, err := instance1.DoFindNode(contact2, tree_node[i].NodeID)
+		if err != nil {
+			t.Error("Contact not find")
+		}
+		contactTemp := contacts[0]
+		if contactTemp.NodeID.Compare(tree_node[i].NodeID) != 0{
+			t.Error("Contacts not correctly stored")
+		}
+	}
 }
