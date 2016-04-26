@@ -1,0 +1,10 @@
+Creating our own unit tests by improving the thoroughness of the provided tests.
+
+In TestFindNode and TestFindValue, we check the correct contacts were stored and no other contacts are stored.
+
+By doing DoFindNode() function of the 10 tree nodes generate in test case, we check if we find the closest node.
+And check if store in the right place as we designed and only store the right contacts. 
+Since there is only one node in one test and it should be store in the tail so we check index 0 of the contact.
+To compare with the tree node ID.
+
+In this we can figure out if we store the correct contacts.
