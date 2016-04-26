@@ -11,7 +11,6 @@ import (
 	"net/rpc"
 	"strconv"
 	"sort"
-	//"container/list"
 )
 
 const (
@@ -34,20 +33,26 @@ type Kademlia struct {
 }
 
 type Router struct {
-	SelfContact 	Contact
-	Buckets     	[][]Contact
+	SelfContact 			Contact
+	Buckets     			[][]Contact
 }
-
 
 type KeyValueSet struct {
-	Key 			 	ID
-	Value 			 	[]byte
-	KVSearchBoolChan  	chan bool	 
-	KVSearchRestChan  	chan []byte
+	Key 			 		ID
+	Value 			 		[]byte
+	KVSearchBoolChan  		chan bool	 
+	KVSearchRestChan  		chan []byte
 }
 
+type ContactDistance struct {
+	contact 		Contact
+	distance    	int
+}
 
-
+type ByDist []ContactDistance
+func (d ByDist) Len() int           { return len(d) }
+func (d ByDist) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
+func (d ByDist) Less(i, j int) bool { return d[i].distance < d[j].distance }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
@@ -64,7 +69,6 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
-
 	s := rpc.NewServer()
 	s.Register(&KademliaRPC{k})
 	hostname, port, err := net.SplitHostPort(laddr)
@@ -77,7 +81,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	if err != nil {
 		log.Fatal("Listen: ", err)
 	}
-
+	
 	// Run RPC server forever.
 	go http.Serve(l, nil)
 
@@ -99,7 +103,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 }
 
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
-	fmt.Println("update started")
+	// fmt.Println("update started")
 	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
 	if prefixLength == 160 {
 		return
@@ -107,7 +111,6 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	var tmpContact Contact
 	found := false
 	contactIndex := 0; 
-
 	bucket := &k.RoutingTable.Buckets[prefixLength]
 	
 	for x, value := range *bucket {
@@ -118,9 +121,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 			break
 		}
 	}
-	fmt.Println("update finished")
-
-
+	// fmt.Println("update finished")
 	if found == false {
 		if len(*bucket) <= 20 {
 			*bucket = append(*bucket, *contact)
@@ -137,8 +138,6 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	 	*bucket = append(*bucket, tmpContact)
 	}
 }
-
-
 
 func handleRequest(k *Kademlia) {
 	for {
@@ -165,7 +164,6 @@ func handleRequest(k *Kademlia) {
 	}
 }
 
-
 func NewKademlia(laddr string) *Kademlia {
 	return NewKademliaWithId(laddr, NewRandomID())
 }
@@ -185,9 +183,11 @@ func (k *Kademlia) FindContact(nodeId ID) (*Contact, error) {
 	if nodeId == k.SelfContact.NodeID {
 		return &k.SelfContact, nil
 	}
+
 	prefixLength := nodeId.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
 	k.BucketsIndexChan <- prefixLength
 	bucket := <- k.BucketResultChan
+
 	for _, value := range bucket{
 		if value.NodeID.Equals(nodeId) {
 			k.ContactChan <- &value
@@ -229,6 +229,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
 	}
 	fmt.Println("receive: " + pong.Sender.NodeID.AsString())
+
 	k.ContactChan <- &(&pong).Sender
 	defer client.Close()
 	return nil, &CommandFailed{
@@ -267,6 +268,7 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 	}
 	defer client.Close()
 	err = client.Call("KademliaRPC.FindNode", req, &res)
+
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed{"Not implemented"}
@@ -321,17 +323,6 @@ func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found 
 	return
 }
 
-type ContactDistance struct {
-	contact 		Contact
-	distance    	int
-}
-
-type ByDist []ContactDistance
-
-func (d ByDist) Len() int           { return len(d) }
-func (d ByDist) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
-func (d ByDist) Less(i, j int) bool { return d[i].distance < d[j].distance }
-
 func Distance(des ID, bucket []Contact, tempList *[]ContactDistance) {
 	for _, value := range bucket {
 		desID := value.NodeID.Xor(des)
@@ -340,6 +331,7 @@ func Distance(des ID, bucket []Contact, tempList *[]ContactDistance) {
 		*tempList = append(*tempList, *ConDist)
 	}
 }
+
 func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
 	tempList := make([]ContactDistance, 0)
