@@ -211,8 +211,5 @@ func TestFindValue(t *testing.T) {
 			t.Error("Contacts not correctly stored")
 		}
 	}
-<<<<<<< HEAD
 
-=======
->>>>>>> 7925118bc47bf2b675ac45bf2266d9ed76740794
 }
