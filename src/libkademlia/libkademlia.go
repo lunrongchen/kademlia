@@ -350,11 +350,13 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 			continue
 		}
 		if prefixLength - i >= 0 {
-			bucket := k.RoutingTable.Buckets[prefixLength - i]
+			k.BucketsIndexChan <- (prefixLength - i)
+			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
 		if prefixLength + i < IDBytes {
-			bucket := k.RoutingTable.Buckets[prefixLength + i]
+			k.BucketsIndexChan <- (prefixLength + i)
+			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
 	}
