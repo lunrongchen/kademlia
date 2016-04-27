@@ -29,7 +29,7 @@ type Kademlia struct {
 	KeyValueChan			chan *KeyValueSet
 	KVSearchChan			chan *KeyValueSet
 	BucketsIndexChan		chan int
-	BucketResultChan 		chan []Contact
+	BucketResultChan		chan []Contact
 }
 
 type Router struct {
@@ -38,15 +38,15 @@ type Router struct {
 }
 
 type KeyValueSet struct {
-	Key 					ID
-	Value 					[]byte
+	Key						ID
+	Value					[]byte
 	KVSearchBoolChan		chan bool
 	KVSearchRestChan		chan []byte
 }
 
 type ContactDistance struct {
-	contact 		Contact
-	distance    	int
+	contact			Contact
+	distance		int
 }
 
 type ByDist []ContactDistance
