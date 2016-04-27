@@ -21,10 +21,10 @@ const (
 
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
-	NodeID     				ID
-	SelfContact 			Contact
-	RoutingTable 			*Router
-	HashTable   			map[ID][]byte
+	NodeID					ID
+	SelfContact				Contact
+	RoutingTable			*Router
+	HashTable				map[ID][]byte
 	ContactChan				chan *Contact
 	KeyValueChan			chan *KeyValueSet
 	KVSearchChan			chan *KeyValueSet
@@ -33,15 +33,15 @@ type Kademlia struct {
 }
 
 type Router struct {
-	SelfContact 			Contact
-	Buckets     			[][]Contact
+	SelfContact				Contact
+	Buckets					[][]Contact
 }
 
 type KeyValueSet struct {
-	Key 			 		ID
-	Value 			 		[]byte
-	KVSearchBoolChan  		chan bool	 
-	KVSearchRestChan  		chan []byte
+	Key 					ID
+	Value 					[]byte
+	KVSearchBoolChan		chan bool
+	KVSearchRestChan		chan []byte
 }
 
 type ContactDistance struct {
@@ -50,22 +50,22 @@ type ContactDistance struct {
 }
 
 type ByDist []ContactDistance
-func (d ByDist) Len() int           { return len(d) }
-func (d ByDist) Swap(i, j int)      { d[i], d[j] = d[j], d[i] }
-func (d ByDist) Less(i, j int) bool { return d[i].distance < d[j].distance }
+func (d ByDist) Len() int			{ return len(d) }
+func (d ByDist) Swap(i, j int)		{ d[i], d[j] = d[j], d[i] }
+func (d ByDist) Less(i, j int) bool	{ return d[i].distance < d[j].distance }
 
 func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	// TODO: Initialize other state here as you add functionality.
 	k := new(Kademlia)
 	k.NodeID = nodeID
-    k.HashTable = make(map[ID] []byte)
-    k.ContactChan = make(chan * Contact)
-    k.KeyValueChan = make(chan * KeyValueSet)
-    k.KVSearchChan = make(chan * KeyValueSet)
-    k.BucketsIndexChan = make(chan int)
-    k.BucketResultChan = make(chan []Contact)
-    k.RoutingTable = new(Router)
-    k.RoutingTable.Buckets = make([][]Contact, b)
+	k.HashTable = make(map[ID] []byte)
+	k.ContactChan = make(chan * Contact)
+	k.KeyValueChan = make(chan * KeyValueSet)
+	k.KVSearchChan = make(chan * KeyValueSet)
+	k.BucketsIndexChan = make(chan int)
+	k.BucketResultChan = make(chan []Contact)
+	k.RoutingTable = new(Router)
+	k.RoutingTable.Buckets = make([][]Contact, b)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
