@@ -21,11 +21,11 @@ const (
 
 // Kademlia type. You can put whatever state you need in this.
 type Kademlia struct {
-	NodeID					ID
-	SelfContact				Contact
+	NodeID				ID
+	SelfContact			Contact
 	RoutingTable			*Router
-	HashTable				map[ID][]byte
-	ContactChan				chan *Contact
+	HashTable			map[ID][]byte
+	ContactChan			chan *Contact
 	KeyValueChan			chan *KeyValueSet
 	KVSearchChan			chan *KeyValueSet
 	BucketsIndexChan		chan int
@@ -33,24 +33,24 @@ type Kademlia struct {
 }
 
 type Router struct {
-	SelfContact				Contact
-	Buckets					[][]Contact
+	SelfContact			Contact
+	Buckets				[][]Contact
 }
 
 type KeyValueSet struct {
-	Key						ID
-	Value					[]byte
+	Key				ID
+	Value				[]byte
 	KVSearchBoolChan		chan bool
 	KVSearchRestChan		chan []byte
 }
 
 type ContactDistance struct {
-	contact			Contact
-	distance		int
+	contact				Contact
+	distance			int
 }
 
 type ByDist []ContactDistance
-func (d ByDist) Len() int			{ return len(d) }
+func (d ByDist) Len() int		{ return len(d) }
 func (d ByDist) Swap(i, j int)		{ d[i], d[j] = d[j], d[i] }
 func (d ByDist) Less(i, j int) bool	{ return d[i].distance < d[j].distance }
 
