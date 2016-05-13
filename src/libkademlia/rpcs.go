@@ -63,8 +63,8 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
 	//get the key-value set from request
-    newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool),make(chan []byte)}
-    fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
+  newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool),make(chan []byte)}
+  fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
 	// update bucket contact list
@@ -118,7 +118,7 @@ type FindValueResult struct {
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
-	
+
 	_,found, Value := k.kademlia.BoolLocalFindValue(req.Key)
 	if found == true {
 		res.Value = Value
@@ -128,6 +128,17 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	res.Nodes = k.kademlia.FindClosest(req.Key, 20)
 	k.kademlia.ContactChan <- &(req.Sender)
 	return nil
+}
+
+//iterative find node
+type IterativeResult struct {
+	contacts []Contact
+	key      ID
+	value    []byte
+}
+
+func (k *Kademlia) IterativeFindNode(key ID, isFind bool) (result *IterativeResult){
+	
 }
 
 // For Project 3

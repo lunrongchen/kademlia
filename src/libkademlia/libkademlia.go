@@ -81,7 +81,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	if err != nil {
 		log.Fatal("Listen: ", err)
 	}
-	
+
 	// Run RPC server forever.
 	go http.Serve(l, nil)
 
@@ -110,9 +110,9 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	}
 	var tmpContact Contact
 	found := false
-	contactIndex := 0; 
+	contactIndex := 0;
 	bucket := &k.RoutingTable.Buckets[prefixLength]
-	
+
 	for x, value := range *bucket {
 		if value.NodeID.Equals(contact.NodeID){
 			tmpContact = value
@@ -142,7 +142,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 func handleRequest(k *Kademlia) {
 	for {
 		select {
-		case contact := <- k.ContactChan: 
+		case contact := <- k.ContactChan:
 			fmt.Println("get from channel : " + contact.NodeID.AsString())
 			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
@@ -221,7 +221,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
 	}
-	
+
 	err = client.Call("KademliaRPC.Ping", ping, &pong)
 	if err != nil {
 		log.Fatal("Call: ", err)
@@ -246,7 +246,7 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
 	}
-	
+
 	err = client.Call("KademliaRPC.Store", req, &res)
 	if err != nil {
 		log.Fatal("Call: ", err)
@@ -277,8 +277,7 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 	return res.Nodes, nil
 }
 
-func (k *Kademlia) DoFindValue(contact *Contact,
-	searchKey ID) (value []byte, contacts []Contact, err error) {
+func (k *Kademlia) DoFindValue(contact *Contact, searchKey ID) (value []byte, contacts []Contact, err error) {
 	// TODO: Implement
 	req := FindValueRequest{*contact, NewRandomID(), searchKey}
 	res := new(FindValueResult)
@@ -308,7 +307,7 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	Value := <- res.KVSearchRestChan
 	if found == true {
 		return Value, nil
-	} 
+	}
 	return []byte(""), &CommandFailed{"Not implemented"}
 }
 
@@ -364,13 +363,25 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 
 // For project 2!
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
-	return nil, &CommandFailed{"Not implemented"}
+
 }
+
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
-	return nil, &CommandFailed{"Not implemented"}
+	result := k.IterativeFindNode(key, false)  //receive k triples?
+	for _, c := range result.contacts{
+		go k.DoStore(&c, key, value)
+	}
+	str := "ID of the node that received the final STORE operation: " + result.contacts[len(contacts)-1].NodeID
+	return str, &CommandFailed{"IterativeStore implemented"}
 }
+
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-	return nil, &CommandFailed{"Not implemented"}
+  result := k.IterativeFindNode(key, true)
+	if result.value != nil{
+		str := "NodeID: " + result.contacts[len(contacts)-1].NodeID.AsString() + " --> Value: " + string(result.value)
+		go k.DoStore(&contacts[len(contacts)-1], result.key, result.value)
+	}
+	return  str, &CommandFailed{"IterativeFindNode implemented"}
 }
 
 // For project 3!
@@ -382,4 +393,3 @@ func (k *Kademlia) Vanish(data []byte, numberKeys byte,
 func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
 	return nil
 }
-

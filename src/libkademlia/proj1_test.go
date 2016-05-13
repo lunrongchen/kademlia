@@ -42,11 +42,6 @@ func TestPing(t *testing.T) {
 			"1 in its buckets before ping instance 1")
 	}
 	instance1.DoPing(host2, port2)
-	contact2, err = instance2.FindContact(instance1.NodeID)
-	if err != nil {
-		t.Error("Instance 2 should be able to find instance" +
-			"1 in its buckets before ping instance 1")
-	}
 	contact2, err = instance1.FindContact(instance2.NodeID)
 	if err != nil {
 		t.Error("Instance 2's contact not found in Instance 1's contact list")
@@ -137,17 +132,6 @@ func TestFindNode(t *testing.T) {
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
 
-	for i := 0; i < 10; i++ {
-		contacts, err := instance1.DoFindNode(contact2, tree_node[i].NodeID)
-		if err != nil {
-			t.Error("Contact not find")
-		}
-		contactTemp := contacts[0]
-		if contactTemp.NodeID.Compare(tree_node[i].NodeID) != 0{
-			t.Error("Contacts not correctly stored")
-		}
-	}
-
 	return
 }
 
@@ -201,15 +185,4 @@ func TestFindValue(t *testing.T) {
 
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
-	for i := 0; i < 10; i++ {
-		contacts, err := instance1.DoFindNode(contact2, tree_node[i].NodeID)
-		if err != nil {
-			t.Error("Contact not find")
-		}
-		contactTemp := contacts[0]
-		if contactTemp.NodeID.Compare(tree_node[i].NodeID) != 0{
-			t.Error("Contacts not correctly stored")
-		}
-	}
-
 }
