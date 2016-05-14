@@ -370,6 +370,27 @@ type IterativeResult struct {
 }
 
 func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (ret *IterativeResult) {
+	tempShortList := k.FindClosest(target, k)
+	shortlist := make([]ContactDistance, 0)
+	if findvalue == true {
+		ret.key = target
+	}
+	ret.value = nil
+	for _, node := range tempShortList {
+		shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
+	}
+
+//Todo
+	
+	ret.contacts = make([]Contact, 0)
+	sort.Sort(ByDist(shortlist))
+	if len(shortlist) > k {
+		shortlist = shortlist[:k]
+	}
+	for _, value := range shortlist {
+		ret.contacts = append(ret.contacts, value.contact)
+	}
+	return
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
