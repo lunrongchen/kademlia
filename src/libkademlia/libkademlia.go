@@ -369,18 +369,96 @@ type IterativeResult struct {
 	contacts			[]Contact
 }
 
-func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (ret *IterativeResult) {
+func completed(shortlist []ContactDistance, ActiveMapSearchChan chan ID, ActiveMapResultChan chan bool, closestnode Contact, found_value []byte) bool{
+	if found_value != nil {
+		return true
+	}
+	if shortlist[0].contact.NodeID.Equals(closestnode.NodeID) {
+		return true
+	}
+	closestnode = shortlist[0].contact
+	for i := 0; i < len(shortlist) && i < k; i++ {
+		ActiveMapSearchChan <- shortlist[i].contact.NodeID
+		ActiveMapResultBool := <- ActiveMapResultChan
+		if ActiveMapResultBool == 0 {
+			return false
+		}
+	}
+	return true
+}
 
+func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *IterativeResult) {
+	tempShortList := k.FindClosest(target, k)
+	shortlist := make([]ContactDistance, 0)
+
+	var closestNode Contact
+	keyChan := make(chan []byte)
+	nodeChan := make(chan Contact)
+	result = new(IterativeResult)
+	
+	activeMap := new(map[ID]bool)
+	ActiveMapSearchChan := make(chan ID)
+	ActiveMapResultChan	:= make(chan bool)
+	
+	if findvalue == true {
+		result.key = target
+	}
+	result.value = nil
+	for _, node := range tempShortList {
+		shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
+	}
+	go func() {
+		for {
+			select {
+			case node := <-nodeChan:
+				BoolFound := false
+				for _, value := range shortlist {
+					if value.contact.NodeID == node.NodeID{
+						BoolFound = true
+						break
+					}					
+				}
+				if BoolFound {
+					shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
+				}
+				sort.Sort(ByDist(shortlist))
+			case value := <-keyChan:
+				//Todo
+			case activeID := <-ActiveMapSearchChan:
+				tmpResult = activeMap[activeID]
+				if tmpResult == nil {
+					ActiveMapResultChan <- false
+				} else {
+					ActiveMapResultChan <- true
+				}
+			}
+		}
+	}()
+
+	if !completed(shortlist, activeChan, closestNode, result.value) {
+		//Todo
+	}
+	result.contacts = make([]Contact, 0)
+	sort.Sort(ByDist(shortlist))
+	if len(shortlist) > k {
+		shortlist = shortlist[:k]
+	}
+	for _, value := range shortlist {
+		result.contacts = append(result.contacts, value.contact)
+	}
+	return
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
 }
+
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
 }
+
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
