@@ -363,13 +363,26 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 }
 
 // For project 2!
+type IterativeResult struct {
+	key					ID
+	value				[]byte
+	contacts			[]Contact
+}
+
+func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (ret *IterativeResult) {
+
+}
+
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
+	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
 }
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
+	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
 }
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
+	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
 }
 
