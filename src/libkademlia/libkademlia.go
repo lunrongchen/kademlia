@@ -423,15 +423,15 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				}
 				sort.Sort(ByDist(shortlist))
 			case value := <-keyChan:
-
+				//Todo
 			case ActiveMap := activeChan:
-
+				//Todo
 			}
 		}
 	}()
 
 	if !completed(shortlist, activeChan, closestNode, result.value) {
-		
+		//Todo
 	}
 	result.contacts = make([]Contact, 0)
 	sort.Sort(ByDist(shortlist))
