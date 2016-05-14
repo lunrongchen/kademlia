@@ -370,7 +370,6 @@ type IterativeResult struct {
 }
 
 func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (ret *IterativeResult) {
-
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
