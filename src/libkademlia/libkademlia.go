@@ -386,6 +386,7 @@ func completed(shortlist []ContactDistance, ActiveMapSearchChan chan ID, ActiveM
 	}
 	return true
 }
+
 func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *IterativeResult) {
 	tempShortList := k.FindClosest(target, k)
 	shortlist := make([]ContactDistance, 0)
@@ -452,10 +453,12 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
 }
+
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
 }
+
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	result := k.IterativeFindNode(id, false)
 	return nil, &CommandFailed{"Not implemented"}
