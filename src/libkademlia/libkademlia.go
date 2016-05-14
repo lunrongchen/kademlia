@@ -380,7 +380,7 @@ func completed(shortlist []ContactDistance, ActiveMapSearchChan chan ID, ActiveM
 	for i := 0; i < len(shortlist) && i < k; i++ {
 		ActiveMapSearchChan <- shortlist[i].contact.NodeID
 		ActiveMapResultBool := <- ActiveMapResultChan
-		if ActiveMapResultBool == 0 {
+		if ActiveMapResultBool == false {
 			return false
 		}
 	}
@@ -416,7 +416,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 					if value.contact.NodeID == node.NodeID{
 						BoolFound = true
 						break
-					}					
+					}
 				}
 				if BoolFound {
 					shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
