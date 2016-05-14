@@ -435,7 +435,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 		}
 	}()
 
-	if !completed(shortlist, activeChan, closestNode, result.value) {
+	if !completed(shortlist, ActiveMapSearchChan, ActiveMapResultChan, closestNode, result.value) {
 		//Todo
 	}
 	result.contacts = make([]Contact, 0)
