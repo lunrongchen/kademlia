@@ -369,9 +369,37 @@ type IterativeResult struct {
 	contacts			[]Contact
 }
 
+type ActiveMap struct{
+	m					map[ID]int
+}
+
+func completed(shortlist []ContactDistance, activeChan chan ActiveMap, closestnode Contact, found_value []byte) bool{
+	if found_value != nil {
+		return true
+	}
+	if shortlist[0].contact.NodeID.Equals(closestnode.NodeID) {
+		return true
+	}
+	closestnode = shortlist[0].contact
+	for i := 0; i < len(shortlist) && i < k; i++ {
+// active channel
+		activeFlag <- shortlist[i].contact.NodeID
+		activeFlag := <- activeChan
+// active channel
+		if activeFlag == 0 {
+			return false
+		}
+	}
+	return true
+}
 func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *IterativeResult) {
 	tempShortList := k.FindClosest(target, k)
 	shortlist := make([]ContactDistance, 0)
+	var closestNode Contact
+	nodeChan := make(chan Contact)
+	keyChan := make(chan []byte)
+	activeChan := make(chan ActiveMap)
+	result = new(IterativeResult)
 	if findvalue == true {
 		result.key = target
 	}
@@ -379,9 +407,32 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	for _, node := range tempShortList {
 		shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
 	}
+	go func() {
+		for {
+			select {
+			case node := <-nodeChan:
+				BoolFound := false
+				for _, value := range shortlist {
+					if value.contact.NodeID == node.NodeID{
+						BoolFound = true
+						break
+					}					
+				}
+				if BoolFound {
+					shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
+				}
+				sort.Sort(ByDist(shortlist))
+			case value := <-keyChan:
 
-//Todo
+			case ActiveMap := activeChan:
 
+			}
+		}
+	}()
+
+	if !completed(shortlist, activeChan, closestNode, result.value) {
+		
+	}
 	result.contacts = make([]Contact, 0)
 	sort.Sort(ByDist(shortlist))
 	if len(shortlist) > k {
