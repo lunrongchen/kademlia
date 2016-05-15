@@ -399,6 +399,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	activeMap := new(map[ID]bool)
 	ActiveMapSearchChan := make(chan ID)
 	ActiveMapResultChan	:= make(chan bool)
+	ActiveMapUpdateChan := make(chan ID)
 	
 	if findvalue == true {
 		result.key = target
@@ -424,6 +425,8 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				sort.Sort(ByDist(shortlist))
 			case value := <-keyChan:
 				//Todo
+			case updateID := <-ActiveMapUpdateChan
+				activeMap[updateID] = true
 			case activeID := <-ActiveMapSearchChan:
 				tmpResult = activeMap[activeID]
 				if tmpResult == nil {
