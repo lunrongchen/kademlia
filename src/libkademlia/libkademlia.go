@@ -479,8 +479,8 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	nodeChan := make(chan Contact)
 	result = new(IterativeResult)
 	
-	visiteMap := new(map[ID]bool)
-	activeMap := new(map[ID]bool)
+	visiteMap := make(map[ID]bool)
+	activeMap := make(map[ID]bool)
 	activeMapSearchChan := make(chan ID)
 	activeMapResultChan	:= make(chan bool)
 	activeMapUpdateChan := make(chan * activeUpdate)
@@ -517,7 +517,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				activeMap[tmpUpdate.targetID] = tmpUpdate.boolActive
 			case activeID := <-activeMapSearchChan:
 				tmpResult := activeMap[activeID]
-				if tmpResult == nil {
+				if tmpResult == false {
 					activeMapResultChan <- false
 				} else {
 					activeMapResultChan <- true
@@ -528,7 +528,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 
 	if !completed(shortlist, activeMapSearchChan, activeMapResultChan, closestNode, result.value) {
 		for _, c := range shortlist {
-			if visiteMap[c.contact.NodeID] == 0 {
+			if visiteMap[c.contact.NodeID] == false {
 				if findvalue == true {
 					go SendFindValueQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
 											activeMapUpdateChan, nodeChan, valueChan, target)
@@ -536,14 +536,14 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 					go SendFindNodeQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
 											activeMapUpdateChan, nodeChan)
 				}
-				visiteMap[c.contact.NodeID] == 1
+				visiteMap[c.contact.NodeID] = true
 			}
 		}
 	}
 	result.contacts = make([]Contact, 0)
 	sort.Sort(ByDist(shortlist))
-	if len(shortlist) > k {
-		shortlist = shortlist[:k]
+	if len(shortlist) > 20 {
+		shortlist = shortlist[:20]
 	}
 	for _, value := range shortlist {
 		result.contacts = append(result.contacts, value.contact)
