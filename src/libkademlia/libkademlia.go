@@ -556,7 +556,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	if len(result.contacts) > 0 {
 		return result.contacts, nil
 	} else {
-		return result.contacts, nil
+		return result.contacts, &CommandFailed{"No node found"}
 	}
 	// return nil, &CommandFailed{"Not implemented"}
 }

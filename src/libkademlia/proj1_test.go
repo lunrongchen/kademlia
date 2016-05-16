@@ -5,7 +5,7 @@ import (
 	"net"
 	"strconv"
 	"testing"
-	"time"
+	//"time"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -212,4 +212,32 @@ func TestFindValue(t *testing.T) {
 		}
 	}
 
+}
+
+func TestIterativeFindNode(t *testing.T) {
+	instance := make([]*Kademlia,30)
+    host := make([]net.IP, 30)
+    port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:79"+strconv.Itoa(i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+	contact, err := instance[0].DoIterativeFindNode(instance[10].NodeID)
+	if err != nil {
+		t.Error("node not found ")
+		return
+	}
+	if len(contact) != 20 {
+		t.Error("didn't find enough node")
+	}
+	for i := 0; i < 20; i++ {
+		if contact[i].NodeID == instance[10].NodeID {
+			return 
+		}
+	}
+	t.Error("cannot find the correct node")
 }
