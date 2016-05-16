@@ -379,9 +379,9 @@ func completed(shortlist []ContactDistance, activeMapSearchChan chan ID,
 	if found_value != nil {
 		return true
 	}
-	if shortlist[0].contact.NodeID.Equals(closestnode.NodeID) {
-		return true
-	}
+	// if shortlist[0].contact.NodeID.Equals(closestnode.NodeID) {
+	// 	return true
+	// }
 	closestnode = shortlist[0].contact
 	for i := 0; i < len(shortlist) && i < k; i++ {
 		activeMapSearchChan <- shortlist[i].contact.NodeID
@@ -576,7 +576,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 		fmt.Println(str + "\n")
 		return result.value, nil
 	} else {
-		return result.value, nil
+		return result.value, &CommandFailed{"No value found"}
 	}
 	// return nil, &CommandFailed{"Not implemented"}
 }

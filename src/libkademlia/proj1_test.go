@@ -241,3 +241,33 @@ func TestIterativeFindNode(t *testing.T) {
 	}
 	t.Error("cannot find the correct node")
 }
+
+func TestIterativeFindValue(t *testing.T) {
+	instance := make([]*Kademlia,30)
+    host := make([]net.IP, 30)
+    port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:79"+strconv.Itoa(i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+	key := instance[10].NodeID
+	value := []byte("Hello world")
+	err := instance[10].DoStore(&(instance[10].SelfContact), key, value)
+    if err != nil {
+		t.Error("Could not store value")
+	}
+
+	findvalue, err := instance[0].DoIterativeFindValue(key)
+	if err != nil {
+		t.Error("value not found ")
+		return
+	}
+	if !bytes.Equal(findvalue, value) {
+		t.Error("Stored value did not match found value")
+	}
+	return
+}
