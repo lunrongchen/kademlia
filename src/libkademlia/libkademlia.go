@@ -552,32 +552,33 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
-	// result := k.IterativeFindNode(id, false)
-	// if len(result.contacts) > 0 {
-	// 	return "Success"
-	// } else {
-	// 	return "Failed"
-	// }
-	return nil, &CommandFailed{"Not implemented"}
+	result := k.IterativeFindNode(id, false)
+	if len(result.contacts) > 0 {
+		return result.contacts, nil
+	} else {
+		return result.contacts, nil
+	}
+	// return nil, &CommandFailed{"Not implemented"}
 }
 
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
-	// result := k.IterativeFindNode(id, false)
-	// for _, c := range result.contacts {
-	// 	go k.DoStore(&c, key, value)
-	// }
-	return nil, &CommandFailed{"Not implemented"}
+	result := k.IterativeFindNode(key, false)
+	for _, c := range result.contacts {
+		go k.DoStore(&c, key, value)
+	}
+	return result.contacts, &CommandFailed{"Not implemented"}
 }
 
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-	// result := k.IterativeFindNode(id, true)
-	// if result.value != nil {
-	// 	str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
-	// 	return str
-	// } else {
-	// 	return "Failed"
-	// }
-	return nil, &CommandFailed{"Not implemented"}
+	result := k.IterativeFindNode(key, true)
+	if result.value != nil {
+		str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
+		fmt.Println(str + "\n")
+		return result.value, nil
+	} else {
+		return result.value, nil
+	}
+	// return nil, &CommandFailed{"Not implemented"}
 }
 
 // For project 3!
