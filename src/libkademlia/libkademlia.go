@@ -530,11 +530,10 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 			if visiteMap[c.contact.NodeID] == 0 {
 				if findvalue == true {
 					go SendFindValueQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
-											activeMapUpdateChan, activeMapUpdateChan, 
-											nodeChan, valueChan, target)
+											activeMapUpdateChan, nodeChan, valueChan, target)
 				} else {
 					go SendFindNodeQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
-											activeMapUpdateChan, activeMapUpdateChan, nodeChan))
+											activeMapUpdateChan, nodeChan))
 				}
 				visiteMap[c.contact.NodeID] == 1
 			}
