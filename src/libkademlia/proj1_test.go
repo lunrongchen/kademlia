@@ -244,11 +244,11 @@ func TestIterativeFindNode(t *testing.T) {
 	if len(contact) != 20 {
 		t.Error("didn't find enough node")
 	}
-	// for i := 0; i < 20; i++ {
-	// 	if contact[i].NodeID == instance[10].NodeID {
-	// 		return 
-	// 	}
-	// }
+	for i := 0; i < 20; i++ {
+	 	if contact[i].NodeID == instance[10].NodeID {
+	 		return 
+	 	}
+	 }
 	t.Error("cannot find the correct node")
 }
 

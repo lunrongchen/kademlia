@@ -11,6 +11,8 @@ import (
 	"net/rpc"
 	"strconv"
 	"sort"
+	"time"
+	"math"
 )
 
 const (
@@ -375,12 +377,12 @@ type activeUpdate struct {
 }
 
 
-func (k *Kademlia) SendFindNodeQuery(contact *Contact, searchKey ID) ([]Contact, *Contact, error) {
+func (k *Kademlia) FindNodeQuery(contact *Contact, searchKey ID) ([]Contact, *Contact, error) {
 	result,err:=k.DoFindNode(contact ,searchKey)
 	return result,contact,err
 }
 
-func (k *Kademlia) SendFindValueQuery(contact *Contact, searchKey ID) ([]byte,[]Contact, *Contact, error) {
+func (k *Kademlia) FindValueQuery(contact *Contact, searchKey ID) ([]byte,[]Contact, *Contact, error) {
 	foundvalue,contactresult,err:=k.DoFindValue(contact,searchKey)
 	return foundvalue,contactresult,contact,err
 }
@@ -401,47 +403,70 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	}
 	Closest1 := unactivelist[0]
 	complete := false
-	num := 0
 	go func() {
-		fmt.Println("enter go1")
 		sendrequestchan <- true
-		fmt.Println("enter function")
 		for len(shortlist)<20 && complete == false {
-			select{
-			case send := <- readlistchan:
-			fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
+				send := <- readlistchan
+				fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
 				for n := 0; n < 3; n++ {
+					sendnum := n
 					go func(){ 
 						fmt.Println("send request to node")
-						recived,sender,_ := k.SendFindNodeQuery(&(send[n].contact),id)
+						recived,sender,_ := k.FindNodeQuery(&(send[sendnum].contact),id)
 						fmt.Println("recieve from the sender")
 						unactivelistchan <- recived
 						shortlistchan <- sender
 					}()
 				}
-			case c := <- countchan:
-				fmt.Println("recieve")
-				if c == true {
-					num++
-					if (num == 3) {
-						sendrequestchan <- true
-						num = 0
+				timeout := make(chan bool, 1)
+				go func() {
+					time.Sleep(3e8)
+					timeout <- true
+				}()
+				for  recievenum := 0; recievenum < 3; recievenum++ {
+					select{
+					case _ = <- countchan:
+						fmt.Println("count recieve")
+					case _ = <- timeout:
+						fmt.Println("timeout")
 						break
 					}
 				}
-			}
+				sendrequestchan <- true
+				fmt.Println("send second request")
 		}
+		fmt.Println("meet complete?"+ strconv.FormatBool(complete))
+		fmt.Println("shortlist filled?"+ strconv.Itoa(len(shortlist)))
 		if len(shortlist)<20 && complete == true {
 			for i := len(shortlist); i < 20 ;i=i+3 {
+				//sendrequestchan <- true
+				//fmt.Println("final send request")
 				send := <- readlistchan
-				for n := 0; n < 3; n++ {
+				for n := 0; n < int(math.Min(float64(3),float64(20-i))); n++ {
+					sendnum := n
 					go func(){ 
-						recived,sender,_ := k.SendFindNodeQuery(&(send[n].contact),id)
-						fmt.Println("recieve from the sender")
+						recived,sender,_ := k.FindNodeQuery(&(send[sendnum].contact),id)
+						//fmt.Println("recieve from the sender")
 						unactivelistchan <- recived
 						shortlistchan <- sender
 					}()
 				}
+				timeout2 := make(chan bool, 1)
+				go func() {
+					time.Sleep(3e8)
+					timeout2 <- true
+				}()
+				for  recievenum := 0; recievenum < 3; recievenum++ {
+					select{
+					case _ = <- countchan:
+						fmt.Println("count recieve")
+					case _ = <- timeout2:
+						fmt.Println("timeout")
+						break
+					}
+				}
+				sendrequestchan <- true
+				fmt.Println("final send request")
 			}
 		} 
 	}()
@@ -450,6 +475,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 		for {
 			select {
 			case contactinfo := <- unactivelistchan:
+				 fmt.Println("recieve new contacts and update unactivelist")
 				 for _,c := range contactinfo{
 						unactivelist = append(unactivelist, ContactDistance{c, c.NodeID.Xor(id).ToInt()})
 				 }		
@@ -464,12 +490,19 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 			case  request:= <-sendrequestchan:
 				if(request == true) {
 				    fmt.Println("get request for sending")
-					readlistchan <- unactivelist[0:3]
-					fmt.Println("after sending to readlistchan")
-					unactivelist = unactivelist[3:]
+				    if len(unactivelist) >= 3 {
+				    	sendlist := unactivelist[0:3]
+				        unactivelist = unactivelist[3:]
+				        fmt.Println("sendlist" + strconv.Itoa(len(sendlist)))
+						fmt.Println("unactivelist lenght" + strconv.Itoa(len(unactivelist)))
+						readlistchan <- sendlist
+						fmt.Println("after sending to readlistchan")
+					} 
 				}
 			case activenode := <-shortlistchan:
+				fmt.Println("update shortlist")
 				shortlist = append(shortlist,*activenode)
+				fmt.Println("after update shortlist" + strconv.Itoa(len(shortlist)))
 				if len(shortlist) == 20 {
 					resultchan <- shortlist
 				}
