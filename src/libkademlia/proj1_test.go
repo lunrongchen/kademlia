@@ -186,3 +186,101 @@ func TestFindValue(t *testing.T) {
 	// TODO: Check that the correct contacts were stored
 	//       (and no other contacts)
 }
+
+func TestIterativeFindNode(t *testing.T) {
+	instance := make([]*Kademlia,30)
+  host := make([]net.IP, 30)
+  port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:"+strconv.Itoa(7900+i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+	contact, err := instance[0].DoIterativeFindNode(instance[10].NodeID)
+	if err != nil {
+		t.Error("node not found ")
+		return
+	}
+	if len(contact) != 20 {
+		t.Error("didn't find enough node")
+	}
+	for i := 0; i < 20; i++ {
+		if contact[i].NodeID == instance[10].NodeID {
+			return
+		}
+	}
+	t.Error("cannot find the correct node")
+}
+
+func TestIterativeFindValue(t *testing.T) {
+	instance := make([]*Kademlia,30)
+	host := make([]net.IP, 30)
+	port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:"+strconv.Itoa(7900+i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+	key := NewRandomID()
+	value := []byte("Hello world")
+	err = instance[10].DoStore(instance[10].contact, key, value) //problem of contact???
+	if err != nil {
+		t.Error("Could not store value")
+	}
+	foundValue, err := instance[0].DoIterativeFindValue(key)
+	if err != nil {
+		t.Error("Do not found value")
+		return
+	}
+	if !bytes.Equal(foundValue, value) {
+		t.Error("Stored value did not match found value")
+	}
+
+	//Given the wrong keyID, it should return k nodes.
+	wrongKey := NewRandomID()
+	foundValue, err = instance[0].DoIterativeFindValue(wrongKey)
+	if contacts == nil || len(contacts) < 10 {
+		t.Error("Searching for a wrong ID did not return contacts")
+	}
+}
+
+// type ByDist []ContactDistance
+// func (d ByDist) Len() int		{ return len(d) }
+// func (d ByDist) Swap(i, j int)		{ d[i], d[j] = d[j], d[i] }
+// func (d ByDist) Less(i, j int) bool	{ return d[i].distance < d[j].distance }
+
+func TestIterativeStore(t *testing.T) {
+	instance := make([]*Kademlia,30)
+	host := make([]net.IP, 30)
+	port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:"+strconv.Itoa(7900+i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+
+	key := NewRandomID()
+	value := []byte("Hello world")
+	contacts, err := instance[0].DoIterativeStore(key)  //instance[num]?relevant?
+	if err != nil {
+		t.Error("Do not iterative store value")
+		return
+	}
+
+	//find cloest 20 contact
+	dists := make(map[ID] int)
+	for k := 0; k < 29; k++ {
+		prefixLength := key.Xor(instance[k].NodeID).PrefixLen()
+		dists = append(dists, {instance[k].NodeID, prefixLength})
+	}	
+
+}
