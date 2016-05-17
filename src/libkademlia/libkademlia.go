@@ -420,6 +420,7 @@ func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID,
 	// 	tmpUpdate.boolActive = false
 	// 	activeMapUpdateChan <- tmpUpdate   //Set false
 	// }
+
 	DoFindNode(*c, c.NodeID)
 
 	if DoFindNode faild {
@@ -613,4 +614,3 @@ func (k *Kademlia) Vanish(data []byte, numberKeys byte,
 func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
 	return nil
 }
-
