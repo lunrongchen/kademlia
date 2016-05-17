@@ -402,27 +402,21 @@ func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID,
 	tmpUpdate.boolActive = true
 	activeMapUpdateChan <- tmpUpdate        //Set true
 
-	// req := FindNodeRequest{c, NewRandomID(), c.NodeID}
-	// var res FindNodeResult
+	req := FindNodeRequest{c, NewRandomID(), c.NodeID}
+	var res FindNodeResult
 
-	// port_str := strconv.Itoa(int(c.Port))
-	// client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
-	// if err != nil {
-	// 	log.Fatal("DialHTTP: ", err)
-	// 	tmpUpdate.boolActive = false
-	// 	activeMapUpdateChan <- tmpUpdate   //Set false
-	// }
-	// defer client.Close()
-	// err = client.Call("KademliaRPC.FindNode", req, &res)
+	port_str := strconv.Itoa(int(c.Port))
+	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+		tmpUpdate.boolActive = false
+		activeMapUpdateChan <- tmpUpdate   //Set false
+	}
+	defer client.Close()
+	err = client.Call("KademliaRPC.FindNode", req, &res)
 
-	// if err != nil {
-	// 	log.Fatal("Call: ", err)
-	// 	tmpUpdate.boolActive = false
-	// 	activeMapUpdateChan <- tmpUpdate   //Set false
-	// }
-	DoFindNode(*c, c.NodeID)
-
-	if DoFindNode faild {
+	if err != nil {
+		log.Fatal("Call: ", err)
 		tmpUpdate.boolActive = false
 		activeMapUpdateChan <- tmpUpdate   //Set false
 	}
@@ -446,27 +440,20 @@ func SendFindValueQuery(c Contact, activeMapSearchChan chan ID,
 	tmpUpdate.boolActive = true
 	activeMapUpdateChan <- tmpUpdate        //Set true
 
-	// req := FindValueRequest{c, NewRandomID(), target}
-	// res := new(FindValueResult)
+	req := FindValueRequest{c, NewRandomID(), target}
+	res := new(FindValueResult)
 		
-	// port_str := strconv.Itoa(int(c.Port))
-	// client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
-	// if err != nil {
-	// 	log.Fatal("DialHTTP: ", err)
-	// 	tmpUpdate.boolActive = false
-	// 	activeMapUpdateChan <- tmpUpdate   //Set false
-	// }
-	// defer client.Close()
-	// err = client.Call("KademliaRPC.FindValue", req, &res)
-	// if err != nil {
-	// 	log.Fatal("Call: ", err)
-	// 	tmpUpdate.boolActive = false
-	// 	activeMapUpdateChan <- tmpUpdate   //Set false
-	// }
-
-	DoFindValue(*c, c.NodeID)
-	
-	if DoFindValue faild {
+	port_str := strconv.Itoa(int(c.Port))
+	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+		tmpUpdate.boolActive = false
+		activeMapUpdateChan <- tmpUpdate   //Set false
+	}
+	defer client.Close()
+	err = client.Call("KademliaRPC.FindValue", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
 		tmpUpdate.boolActive = false
 		activeMapUpdateChan <- tmpUpdate   //Set false
 	}
