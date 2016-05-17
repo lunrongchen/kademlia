@@ -250,11 +250,6 @@ func TestIterativeFindValue(t *testing.T) {
 	}
 }
 
-// type ByDist []ContactDistance
-// func (d ByDist) Len() int		{ return len(d) }
-// func (d ByDist) Swap(i, j int)		{ d[i], d[j] = d[j], d[i] }
-// func (d ByDist) Less(i, j int) bool	{ return d[i].distance < d[j].distance }
-
 func TestIterativeStore(t *testing.T) {
 	instance := make([]*Kademlia,30)
 	host := make([]net.IP, 30)
@@ -277,10 +272,23 @@ func TestIterativeStore(t *testing.T) {
 	}
 
 	//find cloest 20 contact
-	dists := make(map[ID] int)
+	closeContact := make([]ContactDistance, 0)
 	for k := 0; k < 29; k++ {
-		prefixLength := key.Xor(instance[k].NodeID).PrefixLen()
-		dists = append(dists, {instance[k].NodeID, prefixLength})
-	}	
+		dist := key.Xor(instance[k].NodeID).ToInt()
+		closeContact = append(closeContact, ContactDistance{instance[k].SelfContact, dist})
+	}
+	sort.Sort(ByDist(closeContact))
+	
+	for i := 0; i < 20; i++ {
+		foundValue, err := instance[i].LocalFindValue(searchKey ID) ([]byte, error)
+		if err != nil{
+			t.Error("Do not iterative store value in correct contact")
+			return
+		}
+		if foundValue != value {
+			t.Error("Do not iterative store correct value in contact")
+			return
+		}
+	}
 
 }
