@@ -4,4 +4,4 @@ run:
 	./bin/kademlia localhost:2345 localhost:2345
 
 test:
-	go test libkademlia
+	go test -v libkademlia

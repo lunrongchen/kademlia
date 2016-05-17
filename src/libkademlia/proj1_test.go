@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"testing"
+	"fmt"
 	//"time"
 )
 
@@ -219,14 +220,23 @@ func TestIterativeFindNode(t *testing.T) {
     host := make([]net.IP, 30)
     port := make([]uint16, 30)
 	for i := 30; i < 60; i++ {
-		hostnumber := "localhost:79"+strconv.Itoa(i)
+		hostnumber := "localhost:80"+strconv.Itoa(i)
 		instance[i-30] = NewKademlia(hostnumber)
 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
 	}
 	for k := 0; k < 29; k++ {
 		instance[k].DoPing(host[k+1], port[k+1])
 	}
+	for k := 0; k < 25; k++ {
+		instance[k].DoPing(host[k+3], port[k+3])
+	}
+	for k := 0; k < 20; k++ {
+		instance[k].DoPing(host[k+5], port[k+5])
+	}
+	fmt.Println("After Ping")
 	contact, err := instance[0].DoIterativeFindNode(instance[10].NodeID)
+	fmt.Println("After Find")
+	fmt.Println("result lenght:"+strconv.Itoa(len(contact)))
 	if err != nil {
 		t.Error("node not found ")
 		return
@@ -234,11 +244,11 @@ func TestIterativeFindNode(t *testing.T) {
 	if len(contact) != 20 {
 		t.Error("didn't find enough node")
 	}
-	for i := 0; i < 20; i++ {
-		if contact[i].NodeID == instance[10].NodeID {
-			return 
-		}
-	}
+	// for i := 0; i < 20; i++ {
+	// 	if contact[i].NodeID == instance[10].NodeID {
+	// 		return 
+	// 	}
+	// }
 	t.Error("cannot find the correct node")
 }
 
@@ -247,7 +257,7 @@ func TestIterativeFindNode(t *testing.T) {
     host := make([]net.IP, 30)
     port := make([]uint16, 30)
 	for i := 30; i < 60; i++ {
-		hostnumber := "localhost:79"+strconv.Itoa(i)
+		hostnumber := "localhost:81"+strconv.Itoa(i)
 		instance[i-30] = NewKademlia(hostnumber)
 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
 	}
