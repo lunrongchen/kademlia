@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	alpha = 3
-	b     = 8 * IDBytes
-	k     = 20
+	Alpha = 3
+	B     = 8 * IDBytes
+	K     = 20
 )
 
 // Kademlia type. You can put whatever state you need in this.
@@ -65,7 +65,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.BucketsIndexChan = make(chan int)
 	k.BucketResultChan = make(chan []Contact)
 	k.RoutingTable = new(Router)
-	k.RoutingTable.Buckets = make([][]Contact, b)
+	k.RoutingTable.Buckets = make([][]Contact, B)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -105,7 +105,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	// fmt.Println("update started")
 	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
-	if prefixLength == 160 {
+	if prefixLength == B {
 		return
 	}
 	var tmpContact Contact
@@ -123,7 +123,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	}
 	// fmt.Println("update finished")
 	if found == false {
-		if len(*bucket) <= 20 {
+		if len(*bucket) <= K {
 			*bucket = append(*bucket, *contact)
 		} else {
 			_,err:=k.DoPing((*bucket)[0].Host,(*bucket)[0].Port)
@@ -383,7 +383,7 @@ func completed(shortlist []ContactDistance, activeMapSearchChan chan ID,
 		return true
 	}
 	closestnode = shortlist[0].contact
-	for i := 0; i < len(shortlist) && i < k; i++ {
+	for i := 0; i < len(shortlist) && i < K; i++ {
 		activeMapSearchChan <- shortlist[i].contact.NodeID
 		activeMapResultBool := <- activeMapResultChan
 		if activeMapResultBool == false {
@@ -395,7 +395,7 @@ func completed(shortlist []ContactDistance, activeMapSearchChan chan ID,
 
 func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID, 
 	activeMapResultChan chan bool,activeMapUpdateChan chan * activeUpdate, 
-	nodeChan chan Contact) {
+	waitChan chan int, nodeChan chan Contact) {
 	req := FindNodeRequest{c, NewRandomID(), c.NodeID}
 	var res FindNodeResult
 
@@ -427,12 +427,13 @@ func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID,
 			nodeChan <- node
 		}
 	}
+	waitChan <- 1
 }
 
 
 func SendFindValueQuery(c Contact, activeMapSearchChan chan ID, 
 	activeMapResultChan chan bool, activeMapUpdateChan chan * activeUpdate, 
-	nodeChan chan Contact, valueChan chan []byte, target ID) {
+	waitChan chan int, nodeChan chan Contact, valueChan chan []byte, target ID) {
 	req := FindValueRequest{c, NewRandomID(), target}
 	res := new(FindValueResult)
 	
@@ -467,11 +468,11 @@ func SendFindValueQuery(c Contact, activeMapSearchChan chan ID,
 	} else {
 		valueChan <-res.Value
 	}
-
+	waitChan <- 1
 }
 
 func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *IterativeResult) {
-	tempShortList := k.FindClosest(target, 20)
+	tempShortList := k.FindClosest(target, K)
 	shortlist := make([]ContactDistance, 0)
 
 	var closestNode Contact
@@ -525,25 +526,33 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 			}
 		}
 	}()
-
+	waitChan := make(chan int, Alpha)
 	if !completed(shortlist, activeMapSearchChan, activeMapResultChan, closestNode, result.value) {
+		count := 0
 		for _, c := range shortlist {
 			if visiteMap[c.contact.NodeID] == false {
+				if count >= Alpha {
+					break
+				}
 				if findvalue == true {
 					go SendFindValueQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
-											activeMapUpdateChan, nodeChan, valueChan, target)
+											activeMapUpdateChan, waitChan, nodeChan, valueChan, target)
 				} else {
 					go SendFindNodeQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
-											activeMapUpdateChan, nodeChan)
+											activeMapUpdateChan, waitChan, nodeChan)
 				}
 				visiteMap[c.contact.NodeID] = true
+				count++
 			}
+		}
+		for ; count > 0; count-- {
+			<-waitChan
 		}
 	}
 	result.contacts = make([]Contact, 0)
 	sort.Sort(ByDist(shortlist))
-	if len(shortlist) > 20 {
-		shortlist = shortlist[:20]
+	if len(shortlist) > K {
+		shortlist = shortlist[:K]
 	}
 	for _, value := range shortlist {
 		result.contacts = append(result.contacts, value.contact)
