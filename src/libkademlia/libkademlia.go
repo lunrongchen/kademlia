@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"sort"
 	"time"
-	"math"
+	//"bytes"
 )
 
 const (
@@ -145,8 +145,10 @@ func handleRequest(k *Kademlia) {
 	for {
 		select {
 		case contact := <- k.ContactChan:
+			if contact.NodeID != k.NodeID {
+				k.UpdateRoutingTable(contact)
+			}
 			// fmt.Println("get from channel from ContantChan: " + contact.NodeID.AsString())
-			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
 			fmt.Println("get from channel : " + string(kvset.Value))
 			k.HashTable[kvset.Key] = kvset.Value
@@ -260,6 +262,7 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
 	// TODO: Implement
+	fmt.Println("dofindnode function called")
 	req := FindNodeRequest{k.SelfContact, NewRandomID(), searchKey}
 	var res FindNodeResult
 
@@ -274,11 +277,13 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed{"Not implemented"}
+	}
 
-	}
+	fmt.Println(len(res.Nodes))
 	for i := 0; i < len(res.Nodes); i++ {
-		k.ContactChan <- &(res.Nodes[i])
+	  		k.ContactChan <- &(res.Nodes[i])
 	}
+	fmt.Println("return do find node result!!!")
 	return res.Nodes, nil
 }
 
@@ -300,9 +305,9 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		return nil, nil, &CommandFailed{"Not implemented"}
 	}
 	for i := 0; i < len(res.Nodes); i++ {
-		k.ContactChan <- &(res.Nodes[i])
+	  		k.ContactChan <- &(res.Nodes[i])
 	}
-	return res.Value, res.Nodes, &CommandFailed{"FindValue implemented"}
+	return res.Value, res.Nodes, nil
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
@@ -388,13 +393,14 @@ func (k *Kademlia) FindNodeQuery(contact *Contact, searchKey ID) ([]Contact, *Co
 	return result,contact,err
 }
 
-func (k *Kademlia) FindValueQuery(contact *Contact, searchKey ID) ([]byte,[]Contact, *Contact, error) {
+func (k *Kademlia) FindValueQuery(contact *Contact, searchKey ID) ([]byte, []Contact, *Contact, error) {
 	foundvalue,contactresult,err:=k.DoFindValue(contact,searchKey)
 	return foundvalue,contactresult,contact,err
 }
 
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	tempShortList := k.FindClosest(id, 20)
+	fmt.Println(len(tempShortList))
 	shortlist := make([]Contact, 0)
 	unactivelist := make([]ContactDistance,0)
 
@@ -404,6 +410,8 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	shortlistchan := make(chan *Contact)
 	countchan := make(chan bool)
 	resultchan := make(chan []Contact)
+	findlengthchan := make(chan bool)
+	lengthresultchan := make(chan int)
 	for _, node := range tempShortList {
 		unactivelist = append(unactivelist, ContactDistance{node, node.NodeID.Xor(id).ToInt()})
 	}
@@ -411,10 +419,10 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	complete := false
 	go func() {
 		sendrequestchan <- true
-		for len(shortlist)<20 && complete == false {
+		for complete == false {
 				send := <- readlistchan
 				fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
-				for n := 0; n < 3; n++ {
+				for n := 0; n < len(send); n++ {
 					sendnum := n
 					go func(){
 						fmt.Println("send request to node")
@@ -429,26 +437,37 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 					time.Sleep(3e8)
 					timeout <- true
 				}()
-				for  recievenum := 0; recievenum < 3; recievenum++ {
+				break_for_ := false
+				for  recievenum := 0; recievenum < len(send); recievenum++ {
 					select{
 					case _ = <- countchan:
 						fmt.Println("count recieve")
 					case _ = <- timeout:
 						fmt.Println("timeout")
+						fmt.Println("Before Break in line 444")
+						break_for_ = true
+						break
+					}
+					fmt.Println("Stuck in line 477")
+					if break_for_ == true{
 						break
 					}
 				}
-				sendrequestchan <- true
 				fmt.Println("send second request")
+				if GetLength(findlengthchan, lengthresultchan) >= 20 {
+					break
+				}
+				sendrequestchan <- true
+
 		}
 		fmt.Println("meet complete?"+ strconv.FormatBool(complete))
 		fmt.Println("shortlist filled?"+ strconv.Itoa(len(shortlist)))
-		if len(shortlist)<20 && complete == true {
-			for i := len(shortlist); i < 20 ;i=i+3 {
+		if len(shortlist) <20 && complete == true {
+			for {
 				//sendrequestchan <- true
 				//fmt.Println("final send request")
 				send := <- readlistchan
-				for n := 0; n < int(math.Min(float64(3),float64(20-i))); n++ {
+				for n := 0; n < len(send); n++ {
 					sendnum := n
 					go func(){
 						recived,sender,_ := k.FindNodeQuery(&(send[sendnum].contact),id)
@@ -462,20 +481,32 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 					time.Sleep(3e8)
 					timeout2 <- true
 				}()
-				for  recievenum := 0; recievenum < 3; recievenum++ {
+				get_out_for := false
+				for recievenum := 0; recievenum < len(send); recievenum++ {
 					select{
 					case _ = <- countchan:
 						fmt.Println("count recieve")
 					case _ = <- timeout2:
 						fmt.Println("timeout")
+						fmt.Println("Before Break")
+						get_out_for = true
 						break
 					}
+					if get_out_for == true{
+						break
+					}
+					fmt.Println("Ececuting")
+				}
+				fmt.Println("final send request")
+				if GetLength(findlengthchan, lengthresultchan) >= 20 {
+					break
 				}
 				sendrequestchan <- true
-				fmt.Println("final send request")
 			}
 		}
+		fmt.Println("finish!")
 	}()
+	fmt.Println("Before second Goroutine")
 	go func() {
 		fmt.Println("enter go2")
 		for {
@@ -503,6 +534,10 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 						fmt.Println("unactivelist lenght" + strconv.Itoa(len(unactivelist)))
 						readlistchan <- sendlist
 						fmt.Println("after sending to readlistchan")
+					} else if len(unactivelist) > 0 {
+						sendlist := unactivelist
+						unactivelist = unactivelist[:0]
+						readlistchan <- sendlist
 					}
 				}
 			case activenode := <-shortlistchan:
@@ -512,6 +547,10 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 				if len(shortlist) == 20 {
 					resultchan <- shortlist
 				}
+			case <-findlengthchan:
+				fmt.Println("Request to get length")
+				lengthresultchan <- len(shortlist)
+				fmt.Println("send length to channel")
 			}
 		}
 	}()
@@ -519,38 +558,29 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	return resultContacts,nil
 }
 
-
-func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
-	// result := k.DoIterativeFindNode(key)  //receive k triples?
-	// for _, c := range result.contacts{
-	// 	go k.DoStore(&c, key, value)
-	// }
-	// str := "ID of the node that received the final STORE operation: " + result.contacts[len(contacts)-1].NodeID
-	// return str, &CommandFailed{"IterativeStore implemented"}
-	return nil, &CommandFailed{"Not implemented"}
+func GetLength(findlengthchan chan<- bool, lengthresultchan <-chan int) int {
+	fmt.Println("try to get length")
+	findlengthchan <- true
+	length := <- lengthresultchan
+	fmt.Println("get length")
+	return length
 }
 
-func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-	return nil, &CommandFailed{"Not implemented"}
-}
-
-/*
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
-	result := k.DoIterativeFindNode(key)
-	for _, c := range result.contacts {
+	result,err := k.DoIterativeFindNode(key)
+	if err != nil {
+		return nil, &CommandFailed{"No contact result found"}
+	}
+	for _, c := range result {
 		go k.DoStore(&c, key, value)
 	}
-	return result,nil
+	return result, nil
 }
+
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-	result := k.DoIterativeFindNode(key)
-	if result.value != nil {
-		str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
-		return str
-	} else {
-		return "Failed"
-	}
-}*/
+
+	return  nil, &CommandFailed{"IterativeFindNode implemented"}
+}
 
 // For project 3!
 func (k *Kademlia) Vanish(data []byte, numberKeys byte,
