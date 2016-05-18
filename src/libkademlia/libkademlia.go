@@ -411,14 +411,15 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	resultchan := make(chan []Contact)
 	findlengthchan := make(chan bool)
 	lengthresultchan := make(chan int)
+	completechan := make(chan bool)
+	nocloserchan := make(chan bool)
 	for _, node := range tempShortList {
 		unactivelist = append(unactivelist, ContactDistance{node, node.NodeID.Xor(id).ToInt()})
 	}
 	Closest1 := unactivelist[0]
-	complete := false
 	go func() {
 		sendrequestchan <- true
-		for complete == false {
+		for  {
 				send := <- readlistchan
 				fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
 				for n := 0; n < len(send); n++ {
@@ -456,12 +457,15 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 				if GetLength(findlengthchan, lengthresultchan) >= 20 {
 					break
 				}
+				if NoCloserNode(nocloserchan,completechan) == true {
+					break
+				}
 				sendrequestchan <- true
 
 		}
-		fmt.Println("meet complete?"+ strconv.FormatBool(complete))
+		fmt.Println("meet complete?")
 		fmt.Println("shortlist filled?"+ strconv.Itoa(len(shortlist)))
-		if len(shortlist) <20 && complete == true {
+		if GetLength(findlengthchan, lengthresultchan) >= 20 && NoCloserNode(nocloserchan,completechan) == true {
 			for {
 				//sendrequestchan <- true
 				//fmt.Println("final send request")
@@ -508,6 +512,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	fmt.Println("Before second Goroutine")
 	go func() {
 		fmt.Println("enter go2")
+		complete := false
 		for {
 			select {
 			case contactinfo := <- unactivelistchan:
@@ -517,7 +522,8 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 				 }		
 				 sort.Sort(ByDist(unactivelist))
 				 Closest2 := unactivelist[0]
-				 if (Closest2.distance >= Closest1.distance) {
+				 if (Closest2.distance > Closest1.distance) {
+				 	fmt.Println("no more closer node found, complete meet")
 				 	complete = true
 				 } else {
 				 	Closest1 = Closest2
@@ -550,6 +556,8 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 				fmt.Println("Request to get length")
 				lengthresultchan <- len(shortlist)
 				fmt.Println("send length to channel")
+			case <-nocloserchan:
+				completechan <- complete
 			}
 		}
 	}()
@@ -565,6 +573,11 @@ func GetLength(findlengthchan chan<- bool, lengthresultchan <-chan int) int {
 	return length
 }
 
+func NoCloserNode(nocloserchan chan<- bool,completechan <-chan bool) bool{
+	nocloserchan <- true
+	complete :=<- completechan
+	return complete
+}
 
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	result,err := k.DoIterativeFindNode(key)
