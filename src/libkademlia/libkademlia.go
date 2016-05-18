@@ -143,15 +143,17 @@ func handleRequest(k *Kademlia) {
 	for {
 		select {
 		case contact := <- k.ContactChan: 
-			fmt.Println("get from channel : " + contact.NodeID.AsString())
+			// fmt.Println("get from Contact channel : " + contact.NodeID.AsString())
 			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
-			fmt.Println("get from channel : " + string(kvset.Value))
+			// fmt.Println("get from KeValue channel : " + string(kvset.Value))
 			k.HashTable[kvset.Key] = kvset.Value
-			fmt.Println("print value : " + string(k.HashTable[kvset.Key]))
+			// fmt.Println("print Stored value : " + string(k.HashTable[kvset.Key]))
 		case kvset := <- k.KVSearchChan:
 			kvset.Value = k.HashTable[kvset.Key]
+			fmt.Println("print Search value : " + string(k.HashTable[kvset.Key]))
 			if kvset.Value == nil {
+				fmt.Println("value not found")
 				kvset.KVSearchBoolChan <- false
 				kvset.KVSearchRestChan <- kvset.Value
 			} else {
@@ -232,8 +234,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
 	k.ContactChan <- &(&pong).Sender
 	defer client.Close()
-	return nil, &CommandFailed{
-		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
+	return nil, nil
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
@@ -265,6 +266,7 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
+		return nil, &CommandFailed{"Not implemented"}
 	}
 	defer client.Close()
 	err = client.Call("KademliaRPC.FindNode", req, &res)
@@ -272,7 +274,9 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed{"Not implemented"}
-
+	}
+	for i := 0; i < len(res.Nodes); i++ {
+		k.ContactChan <- &(res.Nodes[i])
 	}
 	return res.Nodes, nil
 }
@@ -287,6 +291,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
+		return nil, nil, &CommandFailed{"Not implemented"}
 	}
 	defer client.Close()
 	err = client.Call("KademliaRPC.FindValue", req, &res)
@@ -294,7 +299,13 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		log.Fatal("Call: ", err)
 		return nil, nil, &CommandFailed{"Not implemented"}
 	}
-	return res.Value, res.Nodes, &CommandFailed{"FindValue implemented"}
+
+	fmt.Println("---DoFindValue : " + string(res.Value) + "\n")
+	for i := 0; i < len(res.Nodes); i++ {
+		k.ContactChan <- &(res.Nodes[i])
+	}
+
+	return res.Value, res.Nodes, nil
 }
 
 func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
@@ -308,8 +319,9 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	Value := <- res.KVSearchRestChan
 	if found == true {
 		return Value, nil
+		fmt.Println("FindValue : " + string(Value) + "\n")
 	} 
-	return []byte(""), &CommandFailed{"Not implemented"}
+	return []byte(""), nil
 }
 
 func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found bool, Value []byte) {
@@ -320,7 +332,7 @@ func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found 
 	k.KVSearchChan <- result
 	found = <- result.KVSearchBoolChan
 	Value = <- result.KVSearchRestChan
-	return
+	return result, found, Value
 }
 
 func Distance(des ID, bucket []Contact, tempList *[]ContactDistance) {
@@ -336,8 +348,8 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
 	tempList := make([]ContactDistance, 0)
 	prefixLength := searchID.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
-	for i := 0; (prefixLength - i >= 0 || prefixLength + i < IDBytes) && len(tempList) < num; i++ {
-		if prefixLength == IDBytes && prefixLength - i == IDBytes {
+	for i := 0; (prefixLength - i >= 0 || prefixLength + i < B) && len(tempList) < num; i++ {
+		if prefixLength == B && prefixLength - i == B {
 			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
 			continue
 		}
@@ -346,7 +358,7 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
-		if prefixLength + i < IDBytes {
+		if prefixLength + i < B {
 			k.BucketsIndexChan <- (prefixLength + i)
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
@@ -356,6 +368,7 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	if len(tempList) > num {
 		tempList = tempList[:num]
 	}
+
 	for _, value := range tempList {
 		result = append(result, value.contact)
 	}
@@ -374,14 +387,19 @@ type activeUpdate struct {
 	boolActive			bool
 }
 
+type shortlistUpdate struct {
+	BoolSort			bool
+	AppendItem			ContactDistance
+}
+
 func completed(shortlist []ContactDistance, activeMapSearchChan chan ID, 
 	activeMapResultChan chan bool, closestnode Contact, found_value []byte) bool{
 	if found_value != nil {
 		return true
 	}
-	if shortlist[0].contact.NodeID.Equals(closestnode.NodeID) {
-		return true
-	}
+	// if shortlist[0].contact.NodeID.Equals(closestnode.NodeID) {
+	// 	return true
+	// }
 	closestnode = shortlist[0].contact
 	for i := 0; i < len(shortlist) && i < K; i++ {
 		activeMapSearchChan <- shortlist[i].contact.NodeID
@@ -389,14 +407,118 @@ func completed(shortlist []ContactDistance, activeMapSearchChan chan ID,
 		if activeMapResultBool == false {
 			return false
 		}
+		fmt.Println(i)
 	}
+	// count := 0
+	// for i := 0; i < len(shortlist); i++ {
+	// 	activeMapSearchChan <- shortlist[i].contact.NodeID
+	// 	activeMapResultBool := <- activeMapResultChan
+	// 	if activeMapResultBool == true {
+	// 		count++
+	// 		if count <= K {
+	// 			return true
+	// 		}
+	// 	}
+	// 	fmt.Println(count)
+	// }
+	
 	return true
 }
 
+func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID, 
+	activeMapResultChan chan bool,activeMapUpdateChan chan * activeUpdate, 
+	waitChan chan int, nodeChan chan Contact) {
+
+	tmpUpdate := new(activeUpdate)
+	tmpUpdate.targetID = c.NodeID
+	tmpUpdate.boolActive = true
+	activeMapUpdateChan <- tmpUpdate        //Set true
+
+	req := FindNodeRequest{c, NewRandomID(), c.NodeID}
+	var res FindNodeResult
+
+	port_str := strconv.Itoa(int(c.Port))
+	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+		tmpUpdate.boolActive = false
+		activeMapUpdateChan <- tmpUpdate   //Set false
+	}
+	defer client.Close()
+	err = client.Call("KademliaRPC.FindNode", req, &res)
+
+	if err != nil {
+		log.Fatal("Call: ", err)
+		tmpUpdate.boolActive = false
+		activeMapUpdateChan <- tmpUpdate   //Set false
+	}
+	activeMapSearchChan <- c.NodeID
+	activeMapResultBool := <- activeMapResultChan
+	if activeMapResultBool == true {
+		for _, node := range res.Nodes {
+			nodeChan <- node
+		}
+	}
+	waitChan <- 1
+	return
+}
+
+
+func SendFindValueQuery(c Contact, activeMapSearchChan chan ID, 
+	activeMapResultChan chan bool, activeMapUpdateChan chan * activeUpdate, 
+	waitChan chan int, nodeChan chan Contact, valueChan chan []byte, target ID) {
+	tmpUpdate := new(activeUpdate)
+	tmpUpdate.targetID = c.NodeID
+	tmpUpdate.boolActive = true
+	activeMapUpdateChan <- tmpUpdate        //Set true
+
+	req := FindValueRequest{c, NewRandomID(), target}
+	res := new(FindValueResult)
+		
+	port_str := strconv.Itoa(int(c.Port))
+	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
+	if err != nil {
+		log.Fatal("DialHTTP: ", err)
+		tmpUpdate.boolActive = false
+		activeMapUpdateChan <- tmpUpdate   //Set false
+	}
+	defer client.Close()
+	err = client.Call("KademliaRPC.FindValue", req, &res)
+	if err != nil {
+		log.Fatal("Call: ", err)
+		tmpUpdate.boolActive = false
+		activeMapUpdateChan <- tmpUpdate   //Set false
+	}
+
+	activeMapSearchChan <- c.NodeID
+	activeMapResultBool := <- activeMapResultChan
+	if res.Value == nil {
+		if activeMapResultBool == true {
+			for _, node := range res.Nodes {
+				nodeChan <- node
+			}
+		}
+		fmt.Println(string(res.Value) + "&&-&&&\n")
+	} else {
+		valueChan <- res.Value
+		fmt.Println(string(res.Value) + "&&&&&\n")
+	}
+	// // if res.Value == nil {
+	// if activeMapResultBool == true {
+	// 	for _, node := range res.Nodes {
+	// 		nodeChan <- node
+	// 	}
+	// }
+	// // } else {
+	// valueChan <-res.Value
+	// // }
+	waitChan <- 1
+}
 
 func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *IterativeResult) {
 	tempShortList := k.FindClosest(target, K)
 	shortlist := make([]ContactDistance, 0)
+	shortlistUpdateChan := make(chan * shortlistUpdate)
 
 	var closestNode Contact
 	valueChan := make(chan []byte)
@@ -414,11 +536,22 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	}
 	result.value = nil
 	for _, node := range tempShortList {
+		// shortlistUpdateTmp1 := new(shortlistUpdate)
+		// shortlistUpdateTmp1.BoolSort = false
+		// shortlistUpdateTmp1.AppendItem = ContactDistance{node, node.NodeID.Xor(target).ToInt()}
+		// shortlistUpdateChan <- shortlistUpdateTmp1
+
 		shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
 	}
 	go func() {
 		for {
 			select {
+			case  shortlistUpdateTmp := <- shortlistUpdateChan:
+				if shortlistUpdateTmp.BoolSort == false {
+					shortlist = append(shortlist, shortlistUpdateTmp.AppendItem)
+				} else {
+					sort.Sort(ByDist(shortlist))
+				}
 			case node := <-nodeChan:
 				BoolFound := false
 				for _, value := range shortlist {
@@ -427,16 +560,27 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 						break
 					}
 				}
-				if BoolFound {
+				if BoolFound == false{
+					// shortlistUpdateTmp2 := new(shortlistUpdate)
+					// shortlistUpdateTmp2.BoolSort = false
+					// shortlistUpdateTmp2.AppendItem = ContactDistance{node, node.NodeID.Xor(target).ToInt()}
+					// shortlistUpdateChan <- shortlistUpdateTmp2
+
 					shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
 				}
-				sort.Sort(ByDist(shortlist))
+				// sort.Sort(ByDist(shortlist))
 			case value := <-valueChan:
 				result.value = value
+				fmt.Println(string(value) + "Value set in the valueChan\n")
 				newNode := new(Contact)
 				newNode.NodeID = result.key
+
+				// shortlistUpdateTmp3 := new(shortlistUpdate)
+				// shortlistUpdateTmp3.BoolSort = false
+				// shortlistUpdateTmp3.AppendItem = ContactDistance{*newNode, (*newNode).NodeID.Xor(target).ToInt()}
+				// shortlistUpdateChan <- shortlistUpdateTmp3
+
 				shortlist = append(shortlist, ContactDistance{*newNode, (*newNode).NodeID.Xor(target).ToInt()})
-				sort.Sort(ByDist(shortlist))
 			case tmpUpdate := <-activeMapUpdateChan:
 				activeMap[tmpUpdate.targetID] = tmpUpdate.boolActive
 			case activeID := <-activeMapSearchChan:
@@ -449,53 +593,22 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 			}
 		}
 	}()
+	
 	waitChan := make(chan int, Alpha)
-	if !completed(shortlist, activeMapSearchChan, activeMapResultChan, closestNode, result.value) {
+
+	for !completed(shortlist, activeMapSearchChan, activeMapResultChan, closestNode, result.value) {
 		count := 0
 		for _, c := range shortlist {
-			tmpUpdate := new(activeUpdate)
-			tmpUpdate.targetID = c.contact.NodeID
-			tmpUpdate.boolActive = true
-			activeMapUpdateChan <- tmpUpdate        //Set true
 			if visiteMap[c.contact.NodeID] == false {
 				if count >= Alpha {
 					break
 				}
 				if findvalue == true {
-						// DoFindNode(*c, c.NodeID)
-						// if DoFindNode faild {
-						// 	tmpUpdate.boolActive = false
-						// 	activeMapUpdateChan <- tmpUpdate   //Set false
-						// }
-
-						activeMapSearchChan <- c.contact.NodeID
-						// activeMapResultBool := <- activeMapResultChan
-						// if activeMapResultBool == true {
-						// 	for _, node := range res.Nodes {
-						// 		nodeChan <- node
-						// 	}
-						// }
-						waitChan <- 1
-
+					go SendFindValueQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
+											activeMapUpdateChan, waitChan, nodeChan, valueChan, target)
 				} else {
-						// DoFindValue(*c, c.NodeID)
-						// if DoFindValue faild {
-						// 	tmpUpdate.boolActive = false
-						// 	activeMapUpdateChan <- tmpUpdate   //Set false
-						// }
-
-						activeMapSearchChan <- c.contact.NodeID
-						// activeMapResultBool := <- activeMapResultChan
-						// if res.Value == nil {
-						// 	if activeMapResultBool == true {
-						// 		for _, node := range res.Nodes {
-						// 			nodeChan <- node
-						// 		}
-						// 	}
-						// } else {
-						// 	valueChan <-res.Value
-						// }
-						waitChan <- 1
+					go SendFindNodeQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
+											activeMapUpdateChan, waitChan, nodeChan)
 				}
 				visiteMap[c.contact.NodeID] = true
 				count++
@@ -531,17 +644,19 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	for _, c := range result.contacts {
 		go k.DoStore(&c, key, value)
 	}
-	return result.contacts, &CommandFailed{"Not implemented"}
+	return result.contacts, nil
 }
 
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	result := k.IterativeFindNode(key, true)
+	fmt.Println("result.key : " + result.key.AsString() + "\n" + "result.value : " + string(result.value) + "\n")
 	if result.value != nil {
 		str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
 		fmt.Println(str + "\n")
 		return result.value, nil
 	} else {
-		return result.value, nil
+		fmt.Println("Value is nil\n")
+		return nil, nil
 	}
 	// return nil, &CommandFailed{"Not implemented"}
 }
