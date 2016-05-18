@@ -91,7 +91,7 @@ func TestIterativeFindNode(t *testing.T) {
 		t.Log("Instance2:" + instance2.NodeID.AsString())
 		t.Error("Find wrong id")
 	}
-	//t.Error(len(res))
+	t.Error(len(res))
 	//return
 }
 

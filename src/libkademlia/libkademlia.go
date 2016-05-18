@@ -421,11 +421,10 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 		sendrequestchan <- true
 		for  {
 				send := <- readlistchan
-				fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
 				for n := 0; n < len(send); n++ {
 					sendnum := n
 					go func(){ 
-						fmt.Println("send request to node")
+						fmt.Println("send request to node"+ send[sendnum].contact.NodeID.AsString())
 						recived,sender,_ := k.FindNodeQuery(&(send[sendnum].contact),id)
 						fmt.Println("recieve from the sender")
 						unactivelistchan <- recived
@@ -518,7 +517,20 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 			case contactinfo := <- unactivelistchan:
 				 fmt.Println("recieve new contacts and update unactivelist")
 				 for _,c := range contactinfo{
-						unactivelist = append(unactivelist, ContactDistance{c, c.NodeID.Xor(id).ToInt()})
+				 	    exisit := false
+				 		for _,a := range shortlist {
+				 			if c.NodeID.Equals(a.NodeID) {
+				 				exisit = true
+				 			}
+				 		}
+				 		for _,a := range unactivelist {
+				 			if c.NodeID.Equals(a.contact.NodeID) {
+				 				exisit = true
+				 			}
+				 		}
+				 		if exisit == false {
+							unactivelist = append(unactivelist, ContactDistance{c, c.NodeID.Xor(id).ToInt()})
+				 		}
 				 }		
 				 sort.Sort(ByDist(unactivelist))
 				 Closest2 := unactivelist[0]
