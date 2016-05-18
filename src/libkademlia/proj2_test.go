@@ -60,6 +60,10 @@ func TestIterativeFindNode(t *testing.T) {
 		}
 	}
 	SearchKey := tree_node[targetIdx].SelfContact.NodeID
+	// dofindnode := (tree_node[targetIdx]).FindClosest(SearchKey,20)
+	// for _, d := range dofindnode {
+	// 	t.Log(d.NodeID.AsString())
+	// }
 	//t.Log("Wait for connect")
 	//Connect(t, tree_node, kNum)
 	//t.Log("Connect!")
@@ -213,4 +217,4 @@ func TestIterativeFindNode(t *testing.T) {
 // // 	res := string(result[:])
 // // 	fmt.Println(res)
 // // 	//t.Error("Finish")
-// // }
+// //}*/

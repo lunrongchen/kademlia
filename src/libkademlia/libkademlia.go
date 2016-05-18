@@ -262,6 +262,7 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
 	// TODO: Implement
+
 	fmt.Println("dofindnode function called")
 	req := FindNodeRequest{k.SelfContact, NewRandomID(), searchKey}
 	var res FindNodeResult
@@ -348,17 +349,17 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
 	tempList := make([]ContactDistance, 0)
 	prefixLength := searchID.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
-	for i := 0; (prefixLength - i >= 0 || prefixLength + i < IDBytes) && len(tempList) < num; i++ {
-		if prefixLength == IDBytes && prefixLength - i == IDBytes {
+	fmt.Println(prefixLength)
+	for i := 0; (prefixLength - i >= 0 || prefixLength + i < 160) && len(tempList) < num; i++ {
+		if prefixLength == 160-i {
 			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
-			continue
-		}
+	    }
 		if prefixLength - i >= 0 {
 			k.BucketsIndexChan <- (prefixLength - i)
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
-		if prefixLength + i < IDBytes {
+		if prefixLength + i < 160 && i != 0{
 			k.BucketsIndexChan <- (prefixLength + i)
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
@@ -400,8 +401,13 @@ func (k *Kademlia) FindValueQuery(contact *Contact, searchKey ID) ([]byte, []Con
 func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	tempShortList := k.FindClosest(id, 20)
 	fmt.Println(len(tempShortList))
+	for n:=0; n<len(tempShortList); n++ {
+		fmt.Println("tempShortList"+ tempShortList[n].NodeID.AsString())
+	}
+	fmt.Println(len(tempShortList))
 	shortlist := make([]Contact, 0)
 	unactivelist := make([]ContactDistance,0)
+	sender := make([]ContactDistance,0)
 
 	unactivelistchan := make(chan []Contact)
     sendrequestchan := make(chan bool)
@@ -413,6 +419,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	lengthresultchan := make(chan int)
 	completechan := make(chan bool)
 	nocloserchan := make(chan bool)
+	finishechan := make(chan bool)
 	for _, node := range tempShortList {
 		unactivelist = append(unactivelist, ContactDistance{node, node.NodeID.Xor(id).ToInt()})
 	}
@@ -507,6 +514,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 			}
 		} 
 		fmt.Println("finish!")
+		finishechan <- true
 	}()
 	fmt.Println("Before second Goroutine")
 	go func() {
@@ -518,8 +526,8 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 				 fmt.Println("recieve new contacts and update unactivelist")
 				 for _,c := range contactinfo{
 				 	    exisit := false
-				 		for _,a := range shortlist {
-				 			if c.NodeID.Equals(a.NodeID) {
+				 		for _,a := range sender {
+				 			if c.NodeID.Equals(a.contact.NodeID) {
 				 				exisit = true
 				 			}
 				 		}
@@ -533,7 +541,9 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 				 		}
 				 }		
 				 sort.Sort(ByDist(unactivelist))
+				 fmt.Println("closest1"+ Closest1.contact.NodeID.AsString())
 				 Closest2 := unactivelist[0]
+				 fmt.Println("Closest2"+ Closest2.contact.NodeID.AsString())
 				 if (Closest2.distance > Closest1.distance) {
 				 	fmt.Println("no more closer node found, complete meet")
 				 	complete = true
@@ -544,17 +554,20 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 			case  request:= <-sendrequestchan:
 				if(request == true) {
 				    fmt.Println("get request for sending")
+				    fmt.Println("the current unactivelist length" + strconv.Itoa(len(unactivelist)))
 				    if len(unactivelist) >= 3 {
 				    	sendlist := unactivelist[0:3]
 				        unactivelist = unactivelist[3:]
 				        fmt.Println("sendlist" + strconv.Itoa(len(sendlist)))
 						fmt.Println("unactivelist lenght" + strconv.Itoa(len(unactivelist)))
 						readlistchan <- sendlist
+						sender = append(sender,sendlist...)
 						fmt.Println("after sending to readlistchan")
-					} else if len(unactivelist) > 0 {
+					} else if len(unactivelist)  > 0 {
 						sendlist := unactivelist
 						unactivelist = unactivelist[:0]
 						readlistchan <- sendlist
+						sender = append(sender,sendlist...)
 					}
 				}
 			case activenode := <-shortlistchan:
@@ -570,6 +583,8 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 				fmt.Println("send length to channel")
 			case <-nocloserchan:
 				completechan <- complete
+			case <- finishechan:
+				resultchan <- shortlist
 			}
 		}
 	}()
