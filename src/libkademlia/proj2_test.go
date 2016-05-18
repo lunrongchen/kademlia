@@ -30,7 +30,7 @@ import (
 // }
 
 // EXTRACREDIT
-// Check out the correctness of DoIterativeFindNode function
+//Check out the correctness of DoIterativeFindNode function
 func TestIterativeFindNode(t *testing.T) {
 	// tree structure;
 	// A->B->tree

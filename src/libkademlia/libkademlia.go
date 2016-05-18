@@ -12,7 +12,8 @@ import (
 	"strconv"
 	"sort"
 	"time"
-	//"bytes"
+	"bytes"
+	"math"
 )
 
 const (
@@ -273,17 +274,18 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 		log.Fatal("DialHTTP: ", err)
 	}
 	defer client.Close()
+	fmt.Println("RPC do find node !!!")
 	err = client.Call("KademliaRPC.FindNode", req, &res)
-
+	fmt.Println("return do find node result!!!")
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed{"Not implemented"}
 
 	}
+
 	for i := 0; i < len(res.Nodes); i++ {
 	  		k.ContactChan <- &(res.Nodes[i])
 	}
-	fmt.Println("return do find node result!!!")
 	return res.Nodes, nil
 }
 
@@ -348,20 +350,28 @@ func Distance(des ID, bucket []Contact, tempList *[]ContactDistance) {
 func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
 	tempList := make([]ContactDistance, 0)
+	fmt.Println("00000000000")
 	prefixLength := searchID.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
+	fmt.Println("FindClosest0000")
 	fmt.Println(prefixLength)
 	for i := 0; (prefixLength - i >= 0 || prefixLength + i < 160) && len(tempList) < num; i++ {
 		if prefixLength == 160-i {
 			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
 	    }
 		if prefixLength - i >= 0 {
+			fmt.Println("FindClosest1111")
 			k.BucketsIndexChan <- (prefixLength - i)
+			fmt.Println("FindClosest2222")
 			bucket := <- k.BucketResultChan
+			fmt.Println("FindClosest3333")
 			Distance(searchID, bucket, &tempList)
 		}
 		if prefixLength + i < 160 && i != 0{
+			fmt.Println("FindClosest4444")
 			k.BucketsIndexChan <- (prefixLength + i)
+			fmt.Println("FindClosest5555")
 			bucket := <- k.BucketResultChan
+			fmt.Println("FindClosest6666")
 			Distance(searchID, bucket, &tempList)
 		}
 	}
@@ -617,154 +627,154 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	return result, nil
 }
 
-// func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
-// 	tempShortList := k.FindClosest(key, 20)
-// 	shortlist := make([]Contact, 0)
-// 	unactivelist := make([]ContactDistance,0)
+func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
+	tempShortList := k.FindClosest(key, 20)
+	shortlist := make([]Contact, 0)
+	unactivelist := make([]ContactDistance,0)
 
-// 	unactivelistchan := make(chan []Contact)
-//     sendrequestchan := make(chan bool)
-// 	readlistchan := make(chan []ContactDistance)
-// 	shortlistchan := make(chan *Contact)
-// 	countchan := make(chan bool)
-// 	resultchan := make(chan []Contact)
-// 	returnvaluechan := make(chan []byte)
-// 	valuefoundchan := make(chan bool)
-// 	for _, node := range tempShortList {
-// 		unactivelist = append(unactivelist, ContactDistance{node, node.NodeID.Xor(key).ToInt()})
-// 	}
-// 	Closest1 := unactivelist[0]
-// 	complete := false
-// 	go func() {
-// 		sendrequestchan <- true
-// 		for len(shortlist)<20 && complete == false {
-// 				send := <- readlistchan
-// 				fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
-// 				for n := 0; n < 3; n++ {
-// 					sendnum := n
-// 					go func(){ 
-// 						fmt.Println("send request to node")
-// 						value,recived,sender,_ := k.FindValueQuery(&(send[sendnum].contact),key)
-// 						fmt.Println("recieve from the sender")
-// 						if !bytes.Equal([]byte(""), value) {
-// 							returnvaluechan <- value
-// 							valuefoundchan <- true
-// 						}
-// 						unactivelistchan <- recived
-// 						shortlistchan <- sender
-// 					}()
-// 				}
-// 				timeout := make(chan bool, 1)
-// 				go func() {
-// 					time.Sleep(3e8)
-// 					timeout <- true
-// 				}()
-// 				for  recievenum := 0; recievenum < 3; recievenum++ {
-// 					select{
-// 					case _ = <- countchan:
-// 						fmt.Println("count recieve")
-// 					case _ = <- timeout:
-// 						fmt.Println("timeout")
-// 						break
-// 					}
-// 				}
-// 				sendrequestchan <- true
-// 				fmt.Println("send second request")
-// 		}
-// 		fmt.Println("meet complete?"+ strconv.FormatBool(complete))
-// 		fmt.Println("shortlist filled?"+ strconv.Itoa(len(shortlist)))
-// 		if len(shortlist)<20 && complete == true {
-// 			for i := len(shortlist); i < 20 ;i=i+3 {
-// 				//sendrequestchan <- true
-// 				//fmt.Println("final send request")
-// 				send := <- readlistchan
-// 				for n := 0; n < int(math.Min(float64(3),float64(20-i))); n++ {
-// 					sendnum := n
-// 					go func(){ 
-// 						value,recived,sender,_ := k.FindValueQuery(&(send[sendnum].contact),key)
-// 						if !bytes.Equal([]byte(""), value) {
-// 							returnvaluechan <- value
-// 							valuefoundchan <- true
-// 						}
-// 						//fmt.Println("recieve from the sender")
-// 						unactivelistchan <- recived
-// 						shortlistchan <- sender
-// 					}()
-// 				}
-// 				timeout2 := make(chan bool, 1)
-// 				go func() {
-// 					time.Sleep(3e8)
-// 					timeout2 <- true
-// 				}()
-// 				for  recievenum := 0; recievenum < 3; recievenum++ {
-// 					select{
-// 					case _ = <- countchan:
-// 						fmt.Println("count recieve")
-// 					case _ = <- timeout2:
-// 						fmt.Println("timeout")
-// 						break
-// 					}
-// 				}
-// 				sendrequestchan <- true
-// 				fmt.Println("final send request")
-// 			}
-// 		} 
-// 	}()
-// 	go func() {
-// 		fmt.Println("enter go2")
-// 		end := false
-// 		for !end {
-// 			select {
-// 			case contactinfo := <- unactivelistchan:
-// 				 fmt.Println("recieve new contacts and update unactivelist")
-// 				 for _,c := range contactinfo{
-// 						unactivelist = append(unactivelist, ContactDistance{c, c.NodeID.Xor(key).ToInt()})
-// 				 }		
-// 				 sort.Sort(ByDist(unactivelist))
-// 				 Closest2 := unactivelist[0]
-// 				 if (Closest2.distance >= Closest1.distance) {
-// 				 	complete = true
-// 				 } else {
-// 				 	Closest1 = Closest2
-// 				 }
-// 				 countchan <- true
-// 			case  request:= <-sendrequestchan:
-// 				if(request == true) {
-// 				    fmt.Println("get request for sending")
-// 				    if len(unactivelist) >= 3 {
-// 				    	sendlist := unactivelist[0:3]
-// 				        unactivelist = unactivelist[3:]
-// 				        fmt.Println("sendlist" + strconv.Itoa(len(sendlist)))
-// 						fmt.Println("unactivelist lenght" + strconv.Itoa(len(unactivelist)))
-// 						readlistchan <- sendlist
-// 						fmt.Println("after sending to readlistchan")
-// 					} 
-// 				}
-// 			case activenode := <-shortlistchan:
-// 				fmt.Println("update shortlist")
-// 				shortlist = append(shortlist,*activenode)
-// 				fmt.Println("after update shortlist" + strconv.Itoa(len(shortlist)))
-// 				if len(shortlist) == 20 {
-// 					resultchan <- shortlist
-// 					end = true
-// 				}
-// 			case <- valuefoundchan:
-// 				end = true
-// 			}
-// 		}
-// 	}()
-// 	for{
-// 		select{
-// 		case valueresult := <- returnvaluechan:
-// 			for n := 0; n < len(shortlist); n++ {
-// 				go k.DoStore(&shortlist[n], key, value)
-// 			}
-// 			return valueresult,nil
-// 		case  <- resultchan:
-// 			return nil,&CommandFailed{"value not found, the key is " + key.AsString() +" and the closed node is " +  Closest1.contact.NodeID.AsString() }
-// 		}
-// 	}
-// }
+	unactivelistchan := make(chan []Contact)
+    sendrequestchan := make(chan bool)
+	readlistchan := make(chan []ContactDistance)
+	shortlistchan := make(chan *Contact)
+	countchan := make(chan bool)
+	resultchan := make(chan []Contact)
+	returnvaluechan := make(chan []byte)
+	valuefoundchan := make(chan bool)
+	for _, node := range tempShortList {
+		unactivelist = append(unactivelist, ContactDistance{node, node.NodeID.Xor(key).ToInt()})
+	}
+	Closest1 := unactivelist[0]
+	complete := false
+	go func() {
+		sendrequestchan <- true
+		for len(shortlist)<20 && complete == false {
+				send := <- readlistchan
+				fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
+				for n := 0; n < 3; n++ {
+					sendnum := n
+					go func(){ 
+						fmt.Println("send request to node")
+						value,recived,sender,_ := k.FindValueQuery(&(send[sendnum].contact),key)
+						fmt.Println("recieve from the sender")
+						if !bytes.Equal([]byte(""), value) {
+							returnvaluechan <- value
+							valuefoundchan <- true
+						}
+						unactivelistchan <- recived
+						shortlistchan <- sender
+					}()
+				}
+				timeout := make(chan bool, 1)
+				go func() {
+					time.Sleep(3e8)
+					timeout <- true
+				}()
+				for  recievenum := 0; recievenum < 3; recievenum++ {
+					select{
+					case _ = <- countchan:
+						fmt.Println("count recieve")
+					case _ = <- timeout:
+						fmt.Println("timeout")
+						break
+					}
+				}
+				sendrequestchan <- true
+				fmt.Println("send second request")
+		}
+		fmt.Println("meet complete?"+ strconv.FormatBool(complete))
+		fmt.Println("shortlist filled?"+ strconv.Itoa(len(shortlist)))
+		if len(shortlist)<20 && complete == true {
+			for i := len(shortlist); i < 20 ;i=i+3 {
+				//sendrequestchan <- true
+				//fmt.Println("final send request")
+				send := <- readlistchan
+				for n := 0; n < int(math.Min(float64(3),float64(20-i))); n++ {
+					sendnum := n
+					go func(){ 
+						value,recived,sender,_ := k.FindValueQuery(&(send[sendnum].contact),key)
+						if !bytes.Equal([]byte(""), value) {
+							returnvaluechan <- value
+							valuefoundchan <- true
+						}
+						//fmt.Println("recieve from the sender")
+						unactivelistchan <- recived
+						shortlistchan <- sender
+					}()
+				}
+				timeout2 := make(chan bool, 1)
+				go func() {
+					time.Sleep(3e8)
+					timeout2 <- true
+				}()
+				for  recievenum := 0; recievenum < 3; recievenum++ {
+					select{
+					case _ = <- countchan:
+						fmt.Println("count recieve")
+					case _ = <- timeout2:
+						fmt.Println("timeout")
+						break
+					}
+				}
+				sendrequestchan <- true
+				fmt.Println("final send request")
+			}
+		} 
+	}()
+	go func() {
+		fmt.Println("enter go2")
+		end := false
+		for !end {
+			select {
+			case contactinfo := <- unactivelistchan:
+				 fmt.Println("recieve new contacts and update unactivelist")
+				 for _,c := range contactinfo{
+						unactivelist = append(unactivelist, ContactDistance{c, c.NodeID.Xor(key).ToInt()})
+				 }		
+				 sort.Sort(ByDist(unactivelist))
+				 Closest2 := unactivelist[0]
+				 if (Closest2.distance >= Closest1.distance) {
+				 	complete = true
+				 } else {
+				 	Closest1 = Closest2
+				 }
+				 countchan <- true
+			case  request:= <-sendrequestchan:
+				if(request == true) {
+				    fmt.Println("get request for sending")
+				    if len(unactivelist) >= 3 {
+				    	sendlist := unactivelist[0:3]
+				        unactivelist = unactivelist[3:]
+				        fmt.Println("sendlist" + strconv.Itoa(len(sendlist)))
+						fmt.Println("unactivelist lenght" + strconv.Itoa(len(unactivelist)))
+						readlistchan <- sendlist
+						fmt.Println("after sending to readlistchan")
+					} 
+				}
+			case activenode := <-shortlistchan:
+				fmt.Println("update shortlist")
+				shortlist = append(shortlist,*activenode)
+				fmt.Println("after update shortlist" + strconv.Itoa(len(shortlist)))
+				if len(shortlist) == 20 {
+					resultchan <- shortlist
+					end = true
+				}
+			case <- valuefoundchan:
+				end = true
+			}
+		}
+	}()
+	for{
+		select{
+		case valueresult := <- returnvaluechan:
+			for n := 0; n < len(shortlist); n++ {
+				go k.DoStore(&shortlist[n], key, value)
+			}
+			return valueresult,nil
+		case  <- resultchan:
+			return nil,&CommandFailed{"value not found, the key is " + key.AsString() +" and the closed node is " +  Closest1.contact.NodeID.AsString() }
+		}
+	}
+}
 
 
 // For project 3!

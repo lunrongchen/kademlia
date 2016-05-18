@@ -89,7 +89,9 @@ type FindNodeResult struct {
 
 func (k *KademliaRPC) FindNode(req FindNodeRequest, res *FindNodeResult) error {
 	// TODO: Implement.
+	fmt.Println("Before find Nodes")
 	foundContacts := k.kademlia.FindClosest(req.NodeID, 20)
+	fmt.Println("executing RPC!!!")
 	res.MsgID = CopyID(req.MsgID)
 	res.Nodes = make([]Contact, len(foundContacts))
 	res.Nodes = foundContacts

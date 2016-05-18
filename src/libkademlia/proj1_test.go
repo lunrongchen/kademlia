@@ -241,10 +241,10 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 // 		t.Error("node not found ")
 // 		return
 // 	}
-// 	if len(contact) != 20 {
-// 		t.Error("didn't find enough node")
-// 	}
-// 	for i := 0; i < 20; i++ {
+// 	// if len(contact) != 20 {
+// 	// 	t.Error("didn't find enough node")
+// 	// }
+// 	for i := 0; i < len(contact); i++ {
 // 	 	if contact[i].NodeID == instance[11].NodeID {
 // 	 		return 
 // 	 	}
