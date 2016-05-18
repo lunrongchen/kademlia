@@ -164,9 +164,9 @@ func handleRequest(k *Kademlia) {
 				kvset.KVSearchRestChan <- kvset.Value
 			}
 		case bucketIndex := <- k.BucketsIndexChan:
-			fmt.Println("return result from RoutingTable")
+			//fmt.Println("return result from RoutingTable")
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
-			fmt.Println("send back result from RoutingTable")
+			//fmt.Println("send back result from RoutingTable")
 		}
 	}
 }
@@ -359,22 +359,22 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	for i := 0; (prefixLength - i >= 0 || prefixLength + i < 160) && len(tempList) < num; i++ {
 		if prefixLength == 160-i {
 			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
-			contiune
+			continue
 	    }
 		if prefixLength - i >= 0 {
-			fmt.Println("FindClosest1111")
+			//fmt.Println("FindClosest1111")
 			k.BucketsIndexChan <- (prefixLength - i)
 			fmt.Println("FindClosest2222")
 			bucket := <- k.BucketResultChan
-			fmt.Println("FindClosest3333")
+			//fmt.Println("FindClosest3333")
 			Distance(searchID, bucket, &tempList)
 		}
 		if prefixLength + i < 160 && i != 0{
-			fmt.Println("FindClosest4444")
+			//fmt.Println("FindClosest4444")
 			k.BucketsIndexChan <- (prefixLength + i)
-			fmt.Println("FindClosest5555")
+			//fmt.Println("FindClosest5555")
 			bucket := <- k.BucketResultChan
-			fmt.Println("FindClosest6666")
+			//fmt.Println("FindClosest6666")
 			Distance(searchID, bucket, &tempList)
 		}
 	}
