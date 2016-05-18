@@ -348,10 +348,10 @@ func Distance(des ID, bucket []Contact, tempList *[]ContactDistance) {
 func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
 	tempList := make([]ContactDistance, 0)
-	prefixLength := searchID.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
-	for i := 0; (prefixLength - i >= 0 || prefixLength + i < IDBytes) && len(tempList) < num; i++ {
-		if prefixLength == IDBytes && prefixLength - i == IDBytes {
-			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
+	prefixLength := searchID.Xor(k.NodeID).PrefixLen()
+	for i := 0; (prefixLength - i >= 0 || prefixLength + i < b) && len(tempList) < num; i++ {
+		if prefixLength == b && prefixLength - i == b {
+			tempList = append(tempList, ContactDistance{k.SelfContact, 0})
 			continue
 		}
 		if prefixLength - i >= 0 {
@@ -359,7 +359,7 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
-		if prefixLength + i < IDBytes {
+		if prefixLength + i < b {
 			k.BucketsIndexChan <- (prefixLength + i)
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
