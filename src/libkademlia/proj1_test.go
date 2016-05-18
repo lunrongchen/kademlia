@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 	"sort"
+	// "fmt"
 	//"time"
 )
 
@@ -136,57 +137,56 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 // 	return
 // }
 //
-// func TestFindValue(t *testing.T) {
-// 	// tree structure;
-// 	// A->B->tree
-// 	/*
-// 	         C
-// 	      /
-// 	  A-B -- D
-// 	      \
-// 	         E
-// 	*/
-// 	instance1 := NewKademlia("localhost:7926")
-// 	instance2 := NewKademlia("localhost:7927")
-// 	host2, port2, _ := StringToIpPort("localhost:7927")
-// 	instance1.DoPing(host2, port2)
-// 	contact2, err := instance1.FindContact(instance2.NodeID)
-// 	if err != nil {
-// 		t.Error("Instance 2's contact not found in Instance 1's contact list")
-// 		return
-// 	}
-//
-// 	tree_node := make([]*Kademlia, 10)
-// 	for i := 0; i < 10; i++ {
-// 		address := "localhost:" + strconv.Itoa(7928+i)
-// 		tree_node[i] = NewKademlia(address)
-// 		host_number, port_number, _ := StringToIpPort(address)
-// 		instance2.DoPing(host_number, port_number)
-// 	}
-//
-// 	key := NewRandomID()
-// 	value := []byte("Hello world")
-// 	err = instance2.DoStore(contact2, key, value)
-// 	if err != nil {
-// 		t.Error("Could not store value")
-// 	}
-//
-// 	// Given the right keyID, it should return the value
-// 	foundValue, contacts, err := instance1.DoFindValue(contact2, key)
-// 	if !bytes.Equal(foundValue, value) {
-// 		t.Error("Stored value did not match found value")
-// 	}
-//
-// 	//Given the wrong keyID, it should return k nodes.
-// 	wrongKey := NewRandomID()
-// 	foundValue, contacts, err = instance1.DoFindValue(contact2, wrongKey)
-// 	if contacts == nil || len(contacts) < 10 {
-// 		t.Error("Searching for a wrong ID did not return contacts")
-// 	}
-//
-// 	// TODO: Check that the correct contacts were stored
-// 	//       (and no other contacts)
-// }
+func TestFindValue(t *testing.T) {
+	// tree structure;
+	// A->B->tree
+	/*
+	         C
+	      /
+	  A-B -- D
+	      \
+	         E
+	*/
+	instance := make([]*Kademlia,30)
+	host := make([]net.IP, 30)
+	port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:"+strconv.Itoa(7900+i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+	key := NewRandomID()
+	value := []byte("Hello world")
+	// err := instance[10].DoStore(&(instance[10].SelfContact), key, value)   //problem of contact???
+	// if err != nil {
+	// 	t.Error("Could not store value")
+	// }
+	err := instance[0].DoStore(&(instance[1].SelfContact), key, value)
+	if !bytes.Equal(instance[1].HashTable[key],value) {
+		t.Error("Stored value in hashtable is not correct")
+	}
+	// ///// print all stored value
+	// for i := 0; i < 30; i++{
+	// 	if instance[i].HashTable != nil {
+	// 		fmt.Println("stored value:" + instance[i].NodeID.AsString() + String(map["key"]))
+	// 	}
+	// }
+	foundValue, _, err := instance[0].DoFindValue(&(instance[1].SelfContact),key)
+	if err != nil {
+		t.Error("Error of do find value")
+		return
+	}
+	if foundValue != nil{
+		if !bytes.Equal(foundValue, value) {
+			t.Error("Stored value did not match found value")
+		}
+	} else {
+		t.Error("Do not find value")
+	}
+}
 
 
 func TestIterativeFindNode(t *testing.T) {
@@ -235,6 +235,12 @@ func TestIterativeFindValue(t *testing.T) {
 	if err != nil {
 		t.Error("Could not store value")
 	}
+	// ///// print all stored value
+	// for i := 0; i < 30; i++{
+	// 	if instance[i].HashTable != nil {
+	// 		fmt.Println("stored value:" + instance[i].NodeID.AsString() + String(map["key"]))
+	// 	}
+	// }
 	foundValue, err := instance[0].DoIterativeFindValue(key)
 	if err != nil {
 		t.Error("Do not found value")
@@ -266,7 +272,7 @@ func TestIterativeStore(t *testing.T) {
 	}
 
 	key := NewRandomID()
-	// value := []byte("Hello world")
+	value := []byte("Hello world")
 	_, err := instance[0].DoIterativeFindNode(key)
 
 	if err != nil {
@@ -285,7 +291,7 @@ func TestIterativeStore(t *testing.T) {
 	iterStoreContacts := closeContact[:19]
 
 	for i := 0; i < 30; i++ {
-		_, err := instance[i].LocalFindValue(key)
+		foundValue, err := instance[i].LocalFindValue(key)
 
 		if err != nil {
 			for j := 0; j < 20; j++ {

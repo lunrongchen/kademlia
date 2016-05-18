@@ -39,7 +39,7 @@ func (k *KademliaRPC) Ping(ping PingMessage, pong *PongMessage) error {
 	// Specify the sender
 	pong.Sender = k.kademlia.SelfContact
 	// Update contact, etc
-	fmt.Println("Ping From : " + ping.Sender.NodeID.AsString())
+	// fmt.Println("Ping From : " + ping.Sender.NodeID.AsString())
 	k.kademlia.ContactChan <- &(ping.Sender)
 	return nil
 }
@@ -63,8 +63,8 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
 	//get the key-value set from request
-  newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool),make(chan []byte)}
-  fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
+    newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool),make(chan []byte)}
+    fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
 	// update bucket contact list
@@ -128,17 +128,6 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	res.Nodes = k.kademlia.FindClosest(req.Key, 20)
 	k.kademlia.ContactChan <- &(req.Sender)
 	return nil
-}
-
-//iterative find node
-type IterativeResult struct {
-	contacts []Contact
-	key      ID
-	value    []byte
-}
-
-func (k *Kademlia) IterativeFindNode(key ID, isFind bool) (result *IterativeResult){
-	
 }
 
 // For Project 3
