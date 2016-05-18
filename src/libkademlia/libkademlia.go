@@ -396,8 +396,6 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int,
 		       shortlistGetContensChan chan bool, shortlistResContensChan chan ContactDistance,
 		       activeMapSearchChan chan ID, activeMapResultChan chan bool, 
 		       closestnode Contact, found_value []byte) bool{
-// func completed(shortlist []ContactDistance, activeMapSearchChan chan ID, 
-// 	activeMapResultChan chan bool, closestnode Contact, found_value []byte) bool{
 	if found_value != nil {
 		return true
 	}
@@ -417,14 +415,7 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int,
 		}
 		fmt.Println(i)
 	}
-	// for i := 0; i < len(shortlist) && i < K; i++ {
-	// 	activeMapSearchChan <- shortlist[i].contact.NodeID
-	// 	activeMapResultBool := <- activeMapResultChan
-	// 	if activeMapResultBool == false {
-	// 		return false
-	// 	}
-	// 	fmt.Println(i)
-	// }
+
 	
 	return true
 }
@@ -617,7 +608,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 		           shortlistGetContensChan, shortlistResContensChan, 
 		           activeMapSearchChan, activeMapResultChan, 
 		           closestNode, result.value) {
-	// for !completed(shortlist, activeMapSearchChan, activeMapResultChan, closestNode, result.value) {
 		shortlistContents := make([]ContactDistance, 0)
 		shortlistGetLenChan <- true
 		shortlistLen := <-shortlistResLenChan
@@ -629,7 +619,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 
 		count := 0
 		for _, c := range shortlistContents {
-		// for _, c := range shortlist {
 			if visiteMap[c.contact.NodeID] == false {
 				if count >= Alpha {
 					break
@@ -667,14 +656,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	for _, value := range shortlistContentsTmp {
 		result.contacts = append(result.contacts, value.contact)
 	}
-
-	// sort.Sort(ByDist(shortlist))
-	// if len(shortlist) > K {
-	// 	shortlist = shortlist[:K]
-	// }
-	// for _, value := range shortlist {
-	// 	result.contacts = append(result.contacts, value.contact)
-	// }
 
 	return
 }
