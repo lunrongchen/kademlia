@@ -164,7 +164,9 @@ func handleRequest(k *Kademlia) {
 				kvset.KVSearchRestChan <- kvset.Value
 			}
 		case bucketIndex := <- k.BucketsIndexChan:
+			fmt.Println("return result from RoutingTable")
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
+			fmt.Println("send back result from RoutingTable")
 		}
 	}
 }
@@ -237,8 +239,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
 	k.ContactChan <- &(&pong).Sender
 	defer client.Close()
-	return nil, &CommandFailed{
-		"Ping successed : " + fmt.Sprintf("%s:%v", ConbineHostIP(host, port), pong.MsgID.AsString())}
+	return &(&pong).Sender, nil
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
@@ -324,7 +325,7 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	if found == true {
 		return Value, nil
 	} 
-	return []byte(""), &CommandFailed{"Not implemented"}
+	return []byte(""), &CommandFailed{"Not found"}
 }
 
 func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found bool, Value []byte) {
@@ -335,7 +336,7 @@ func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found 
 	k.KVSearchChan <- result
 	found = <- result.KVSearchBoolChan
 	Value = <- result.KVSearchRestChan
-	return
+	return result, found, Value
 }
 
 func Distance(des ID, bucket []Contact, tempList *[]ContactDistance) {
@@ -353,10 +354,12 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	fmt.Println("00000000000")
 	prefixLength := searchID.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
 	fmt.Println("FindClosest0000")
+	fmt.Println("prefixLength"+strconv.Itoa(prefixLength))
 	fmt.Println(prefixLength)
 	for i := 0; (prefixLength - i >= 0 || prefixLength + i < 160) && len(tempList) < num; i++ {
 		if prefixLength == 160-i {
 			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
+			contiune
 	    }
 		if prefixLength - i >= 0 {
 			fmt.Println("FindClosest1111")
