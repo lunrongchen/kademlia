@@ -392,41 +392,45 @@ type shortlistUpdate struct {
 	AppendItem			ContactDistance
 }
 
-func completed(shortlist []ContactDistance, activeMapSearchChan chan ID, 
-	activeMapResultChan chan bool, closestnode Contact, found_value []byte) bool{
+func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, 
+		       shortlistGetContensChan chan bool, shortlistResContensChan chan ContactDistance,
+		       activeMapSearchChan chan ID, activeMapResultChan chan bool, 
+		       closestnode Contact, found_value []byte) bool{
+// func completed(shortlist []ContactDistance, activeMapSearchChan chan ID, 
+// 	activeMapResultChan chan bool, closestnode Contact, found_value []byte) bool{
 	if found_value != nil {
 		return true
 	}
-	// if shortlist[0].contact.NodeID.Equals(closestnode.NodeID) {
-	// 	return true
-	// }
-	closestnode = shortlist[0].contact
-	for i := 0; i < len(shortlist) && i < K; i++ {
-		activeMapSearchChan <- shortlist[i].contact.NodeID
+	shortlistContentsTmp := make([]ContactDistance, 0)
+	shortlistGetLenChan <- true
+	shortlistLen := <-shortlistResLenChan
+	shortlistGetContensChan <- true
+	for ; shortlistLen > 0; shortlistLen-- {
+		tmpDistanceContact := <- shortlistResContensChan
+		shortlistContentsTmp = append(shortlistContentsTmp, tmpDistanceContact)
+	}
+	for i := 0; i < len(shortlistContentsTmp) && i < K; i++ {
+		activeMapSearchChan <- shortlistContentsTmp[i].contact.NodeID
 		activeMapResultBool := <- activeMapResultChan
 		if activeMapResultBool == false {
 			return false
 		}
 		fmt.Println(i)
 	}
-	// count := 0
-	// for i := 0; i < len(shortlist); i++ {
+	// for i := 0; i < len(shortlist) && i < K; i++ {
 	// 	activeMapSearchChan <- shortlist[i].contact.NodeID
 	// 	activeMapResultBool := <- activeMapResultChan
-	// 	if activeMapResultBool == true {
-	// 		count++
-	// 		if count <= K {
-	// 			return true
-	// 		}
+	// 	if activeMapResultBool == false {
+	// 		return false
 	// 	}
-	// 	fmt.Println(count)
+	// 	fmt.Println(i)
 	// }
 	
 	return true
 }
 
 func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID, 
-	activeMapResultChan chan bool,activeMapUpdateChan chan * activeUpdate, 
+	activeMapResultChan chan bool, activeMapUpdateChan chan * activeUpdate, 
 	waitChan chan int, nodeChan chan Contact) {
 
 	tmpUpdate := new(activeUpdate)
@@ -519,6 +523,10 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	tempShortList := k.FindClosest(target, K)
 	shortlist := make([]ContactDistance, 0)
 	shortlistUpdateChan := make(chan * shortlistUpdate)
+	shortlistGetLenChan := make(chan bool)
+	shortlistResLenChan := make(chan int)
+	shortlistGetContensChan := make(chan bool)
+	shortlistResContensChan := make(chan ContactDistance)
 
 	var closestNode Contact
 	valueChan := make(chan []byte)
@@ -568,7 +576,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 
 					shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
 				}
-				// sort.Sort(ByDist(shortlist))
 			case value := <-valueChan:
 				result.value = value
 				fmt.Println(string(value) + "Value set in the valueChan\n")
@@ -590,15 +597,39 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				} else {
 					activeMapResultChan <- true
 				}
+			case getLenBool := <- shortlistGetLenChan:
+				if getLenBool == true {
+					shortlistResLenChan <- len(shortlist)
+				}
+			case getContensBool := <- shortlistGetContensChan:
+				if getContensBool == true {
+					for _, cTmp := range(shortlist) {
+						shortlistResContensChan <- cTmp
+					}
+				}
 			}
 		}
 	}()
 	
 	waitChan := make(chan int, Alpha)
 
-	for !completed(shortlist, activeMapSearchChan, activeMapResultChan, closestNode, result.value) {
+	for !completed(shortlistGetLenChan, shortlistResLenChan, 
+		           shortlistGetContensChan, shortlistResContensChan, 
+		           activeMapSearchChan, activeMapResultChan, 
+		           closestNode, result.value) {
+	// for !completed(shortlist, activeMapSearchChan, activeMapResultChan, closestNode, result.value) {
+		shortlistContents := make([]ContactDistance, 0)
+		shortlistGetLenChan <- true
+		shortlistLen := <-shortlistResLenChan
+		shortlistGetContensChan <- true
+		for ; shortlistLen > 0; shortlistLen-- {
+			tmpDistanceContact := <- shortlistResContensChan
+			shortlistContents = append(shortlistContents, tmpDistanceContact)
+		}
+
 		count := 0
-		for _, c := range shortlist {
+		for _, c := range shortlistContents {
+		// for _, c := range shortlist {
 			if visiteMap[c.contact.NodeID] == false {
 				if count >= Alpha {
 					break
@@ -619,13 +650,32 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 		}
 	}
 	result.contacts = make([]Contact, 0)
-	sort.Sort(ByDist(shortlist))
-	if len(shortlist) > K {
-		shortlist = shortlist[:K]
+
+	shortlistContentsTmp := make([]ContactDistance, 0)
+	shortlistGetLenChan <- true
+	shortlistLen := <-shortlistResLenChan
+	shortlistGetContensChan <- true
+	for ; shortlistLen > 0; shortlistLen-- {
+		tmpDistanceContact := <- shortlistResContensChan
+		shortlistContentsTmp = append(shortlistContentsTmp, tmpDistanceContact)
 	}
-	for _, value := range shortlist {
+
+	sort.Sort(ByDist(shortlistContentsTmp))
+	if len(shortlistContentsTmp) > K {
+		shortlistContentsTmp = shortlistContentsTmp[:K]
+	}
+	for _, value := range shortlistContentsTmp {
 		result.contacts = append(result.contacts, value.contact)
 	}
+
+	// sort.Sort(ByDist(shortlist))
+	// if len(shortlist) > K {
+	// 	shortlist = shortlist[:K]
+	// }
+	// for _, value := range shortlist {
+	// 	result.contacts = append(result.contacts, value.contact)
+	// }
+
 	return
 }
 
