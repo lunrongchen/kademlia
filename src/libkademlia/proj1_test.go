@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"testing"
+	"fmt"
 	// "time"
 )
 
@@ -216,7 +217,7 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 
 
 
-func TestFindValue1(t *testing.T) {
+func TestFindValue_other(t *testing.T) {
 	// tree structure;
 	// A->B->tree
 	/*
@@ -267,8 +268,72 @@ func TestFindValue1(t *testing.T) {
 	}
 }
 
+func TestIterativeFindNode_other(t *testing.T) {
+	// tree structure;
+	// A->B->tree
+	/*
+	          C
+	       /
+	   A-B -- D
+	       \
+	          E
+	*/
+	kNum := 40
+	targetIdx := kNum - 10
+	instance2 := NewKademlia("localhost:7305")
+	host2, port2, _ := StringToIpPort("localhost:7305")
+	//  instance2.DoPing(host2, port2)
+	tree_node := make([]*Kademlia, kNum)
+	//t.Log("Before loop")
+	for i := 0; i < kNum; i++ {
+		address := "localhost:" + strconv.Itoa(7306+i)
+		tree_node[i] = NewKademlia(address)
+		tree_node[i].DoPing(host2, port2)
+		t.Log("ID:" + tree_node[i].SelfContact.NodeID.AsString())
+	}
+	for i := 0; i < kNum; i++ {
+		if i != targetIdx {
+			tree_node[targetIdx].DoPing(tree_node[i].SelfContact.Host, tree_node[i].SelfContact.Port)
+		}
+	}
+	SearchKey := tree_node[targetIdx].SelfContact.NodeID
+	//t.Log("Wait for connect")
+	//Connect(t, tree_node, kNum)
+	//t.Log("Connect!")
+	// time.Sleep(100 * time.Millisecond)
+	//cHeap := PriorityQueue{instance2.SelfContact, []Contact{}, SearchKey}
+	//t.Log("Wait for iterative")
+	res, err := instance2.DoIterativeFindNode(SearchKey)
+	// res := nil
+	if err != nil {
+		t.Error(err.Error())
+	}
+	t.Log("SearchKey:" + SearchKey.AsString())
+	if res == nil || len(res) == 0 {
+		t.Error("No contacts were found")
+	}
+	find := false
+	fmt.Print("# of results: ")
+	fmt.Println(len(res))
+	for _, value := range res {
+		t.Log(value.NodeID.AsString())
+		if value.NodeID.Equals(SearchKey) {
+			find = true
+		}
+		//      heap.Push(&cHeap, value)
+	}
+	//  c := cHeap.Pop().(Contact)
+	//  t.Log("Closet Node:" + c.NodeID.AsString())
+	//  t.Log(strconv.Itoa(cHeap.Len()))
+	if !find {
+		t.Log("Instance2:" + instance2.NodeID.AsString())
+		t.Error("Find wrong id")
+	}
+	//t.Error(len(res))
+	//return
+}
 
-func TestIterativeFindValue(t *testing.T) {
+func TestIterativeFindValue_HSQ(t *testing.T) {
 	instance := make([]*Kademlia,30)
     host := make([]net.IP, 30)
     port := make([]uint16, 30)
@@ -304,4 +369,6 @@ func TestIterativeFindValue(t *testing.T) {
 	}
 	return
 }
+
+
 
