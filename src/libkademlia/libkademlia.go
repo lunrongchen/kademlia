@@ -591,29 +591,11 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 			tmpDistanceContact := <- shortlistResContensChan
 			shortlistContents = append(shortlistContents, tmpDistanceContact)
 		}
-
-
-		timeOut := make(chan bool, 1)
-		go func () {
-			time.Sleep(3 * time.Millisecond)
-			timeOut <- true
-		}()
-		break_for_loop := false
-		select {
-			case boolTimeOut := <- timeOut:
-				fmt.Println("timeout")
-				fmt.Println("Before Break")
-				if boolTimeOut == true {
-					break_for_loop = true
-				}
-				// break
-		}
-
 		count := 0
 		for _, c := range shortlistContents {
-			if break_for_loop == true {
-				break
-			}
+			// if break_for_loop == true {
+			// 	break
+			// }
 			if visiteMap[c.contact.NodeID] == false {
 				if count >= Alpha {
 					break
@@ -629,8 +611,28 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				count++
 			}
 		}
+		timeOut := make(chan bool, 1)
+		go func () {
+			time.Sleep(3 * time.Millisecond)
+			timeOut <- true
+		}()
+		break_for_loop := false
+
+        count = 0
 		for ; count > 0; count-- {
-			<-waitChan
+			select {
+			case boolTimeOut := <- timeOut:
+				fmt.Println("timeout")
+				fmt.Println("Before Break")
+				if boolTimeOut == true {
+					break_for_loop = true
+				}
+			case <-waitChan:
+				// break
+			}
+			if break_for_loop == true {
+				break
+			}
 		}
 	}
 	result.contacts = make([]Contact, 0)

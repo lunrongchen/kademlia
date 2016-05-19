@@ -332,38 +332,38 @@ func TestIterativeFindNode_other(t *testing.T) {
 	//return
 }
 
-func TestIterativeFindValue_HSQ(t *testing.T) {
-	instance := make([]*Kademlia,30)
-    host := make([]net.IP, 30)
-    port := make([]uint16, 30)
-	for i := 30; i < 60; i++ {
-		hostnumber := "localhost:81"+strconv.Itoa(i)
-		instance[i-30] = NewKademlia(hostnumber)
-		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
-	}
-	for k := 0; k < 29; k++ {
-		instance[k].DoPing(host[k+1], port[k+1])
-	}
-	for k := 0; k < 25; k++ {
-		instance[k].DoPing(host[k+3], port[k+3])
-	}
-	for k := 0; k < 20; k++ {
-		instance[k].DoPing(host[k+5], port[k+5])
-	}
-	key := instance[11].NodeID
-	value := []byte("Hello world")
-	err := instance[10].DoStore(&(instance[11].SelfContact), key, value)
-    if err != nil {
-		t.Error("Could not store value")
-	}
+// func TestIterativeFindValue_HSQ(t *testing.T) {
+// 	instance := make([]*Kademlia,30)
+//     host := make([]net.IP, 30)
+//     port := make([]uint16, 30)
+// 	for i := 30; i < 60; i++ {
+// 		hostnumber := "localhost:81"+strconv.Itoa(i)
+// 		instance[i-30] = NewKademlia(hostnumber)
+// 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+// 	}
+// 	for k := 0; k < 29; k++ {
+// 		instance[k].DoPing(host[k+1], port[k+1])
+// 	}
+// 	for k := 0; k < 25; k++ {
+// 		instance[k].DoPing(host[k+3], port[k+3])
+// 	}
+// 	for k := 0; k < 20; k++ {
+// 		instance[k].DoPing(host[k+5], port[k+5])
+// 	}
+// 	key := instance[11].NodeID
+// 	value := []byte("Hello world")
+// 	err := instance[10].DoStore(&(instance[11].SelfContact), key, value)
+//     if err != nil {
+// 		t.Error("Could not store value")
+// 	}
 
-	findvalue, err := instance[0].DoIterativeFindValue(key)
-	if err != nil {
-		t.Error("value not found ")
-		return
-	}
-	if !bytes.Equal(findvalue, value) {
-		t.Error("Stored value did not match found value")
-	}
-	return
-}
+// 	findvalue, err := instance[0].DoIterativeFindValue(key)
+// 	if err != nil {
+// 		t.Error("value not found ")
+// 		return
+// 	}
+// 	if !bytes.Equal(findvalue, value) {
+// 		t.Error("Stored value did not match found value")
+// 	}
+// 	return
+// }
