@@ -11,7 +11,6 @@ import (
 	"net/rpc"
 	"strconv"
 	"sort"
-	"math"
 	"bytes"
 	"time"
 )
@@ -624,6 +623,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	tempShortList := k.FindClosest(key, 20)
 	shortlist := make([]Contact, 0)
 	unactivelist := make([]ContactDistance,0)
+	sender := make([]ContactDistance,0)
 
 	unactivelistchan := make(chan []Contact)
     sendrequestchan := make(chan bool)
@@ -631,6 +631,11 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	shortlistchan := make(chan *Contact)
 	countchan := make(chan bool)
 	resultchan := make(chan []Contact)
+	findlengthchan := make(chan bool)
+	lengthresultchan := make(chan int)
+	completechan := make(chan bool)
+	nocloserchan := make(chan bool)
+	finishechan := make(chan bool)
 	returnvaluechan := make(chan []byte)
 	valuefoundchan := make(chan bool)
 	for _, node := range tempShortList {
@@ -640,10 +645,10 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	complete := false
 	go func() {
 		sendrequestchan <- true
-		for len(shortlist)<20 && complete == false {
+		for  {
 				send := <- readlistchan
 				fmt.Println("prepare to send request to nodes"+strconv.Itoa(len(send)))
-				for n := 0; n < 3; n++ {
+				for n := 0; n < len(send); n++ {
 					sendnum := n
 					go func(){ 
 						fmt.Println("send request to node")
@@ -662,26 +667,39 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 					time.Sleep(3e8)
 					timeout <- true
 				}()
-				for  recievenum := 0; recievenum < 3; recievenum++ {
+				break_for_ := false
+				for  recievenum := 0; recievenum < len(send); recievenum++ {
 					select{
 					case _ = <- countchan:
 						fmt.Println("count recieve")
 					case _ = <- timeout:
 						fmt.Println("timeout")
+						fmt.Println("Before Break in line 444")
+						break_for_ = true
+						break
+					}
+					fmt.Println("Stuck in line 477")
+					if break_for_ == true{
 						break
 					}
 				}
-				sendrequestchan <- true
 				fmt.Println("send second request")
+				if ValueGetLength(findlengthchan, lengthresultchan) >= 20 {
+					break
+				}
+				if ValueNoCloserNode(nocloserchan,completechan) == true {
+					break
+				}
+				sendrequestchan <- true
 		}
 		fmt.Println("meet complete?"+ strconv.FormatBool(complete))
 		fmt.Println("shortlist filled?"+ strconv.Itoa(len(shortlist)))
-		if len(shortlist)<20 && complete == true {
-			for i := len(shortlist); i < 20 ;i=i+3 {
+		if ValueGetLength(findlengthchan, lengthresultchan) >= 20 && ValueNoCloserNode(nocloserchan,completechan) == true {
+			for {
 				//sendrequestchan <- true
 				//fmt.Println("final send request")
 				send := <- readlistchan
-				for n := 0; n < int(math.Min(float64(3),float64(20-i))); n++ {
+				for n := 0; n < len(send); n++ {
 					sendnum := n
 					go func(){ 
 						value,recived,sender,_ := k.FindValueQuery(&(send[sendnum].contact),key)
@@ -699,33 +717,56 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 					time.Sleep(3e8)
 					timeout2 <- true
 				}()
-				for  recievenum := 0; recievenum < 3; recievenum++ {
+				get_out_for := false
+				for recievenum := 0; recievenum < len(send); recievenum++ {
 					select{
 					case _ = <- countchan:
 						fmt.Println("count recieve")
 					case _ = <- timeout2:
 						fmt.Println("timeout")
+						fmt.Println("Before Break")
+						get_out_for = true
 						break
 					}
+					if get_out_for == true{
+						break
+					}
+					fmt.Println("Ececuting")
+				}
+				fmt.Println("final send request")
+				if ValueGetLength(findlengthchan, lengthresultchan) >= 20 {
+					break
 				}
 				sendrequestchan <- true
-				fmt.Println("final send request")
 			}
 		} 
 	}()
 	go func() {
 		fmt.Println("enter go2")
-		end := false
-		for !end {
+		//end := false
+		for {
 			select {
 			case contactinfo := <- unactivelistchan:
 				 fmt.Println("recieve new contacts and update unactivelist")
 				 for _,c := range contactinfo{
-						unactivelist = append(unactivelist, ContactDistance{c, c.NodeID.Xor(key).ToInt()})
+						 exisit := false
+				 		for _,a := range sender {
+				 			if c.NodeID.Equals(a.contact.NodeID) {
+				 				exisit = true
+				 			}
+				 		}
+				 		for _,a := range unactivelist {
+				 			if c.NodeID.Equals(a.contact.NodeID) {
+				 				exisit = true
+				 			}
+				 		}
+				 		if exisit == false {
+							unactivelist = append(unactivelist, ContactDistance{c, c.NodeID.Xor(key).ToInt()})
+				 		}
 				 }		
 				 sort.Sort(ByDist(unactivelist))
 				 Closest2 := unactivelist[0]
-				 if (Closest2.distance >= Closest1.distance) {
+				 if (Closest2.distance > Closest1.distance) {
 				 	complete = true
 				 } else {
 				 	Closest1 = Closest2
@@ -740,8 +781,14 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 				        fmt.Println("sendlist" + strconv.Itoa(len(sendlist)))
 						fmt.Println("unactivelist lenght" + strconv.Itoa(len(unactivelist)))
 						readlistchan <- sendlist
+						sender = append(sender,sendlist...)
 						fmt.Println("after sending to readlistchan")
-					} 
+					} else if len(unactivelist)  > 0 {
+						sendlist := unactivelist
+						unactivelist = unactivelist[:0]
+						readlistchan <- sendlist
+						sender = append(sender,sendlist...)
+					}
 				}
 			case activenode := <-shortlistchan:
 				fmt.Println("update shortlist")
@@ -749,10 +796,17 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 				fmt.Println("after update shortlist" + strconv.Itoa(len(shortlist)))
 				if len(shortlist) == 20 {
 					resultchan <- shortlist
-					end = true
 				}
+			case <-findlengthchan:
+				fmt.Println("Request to get length")
+				lengthresultchan <- len(shortlist)
+				fmt.Println("send length to channel")
+			case <-nocloserchan:
+				completechan <- complete
+			case <- finishechan:
+				resultchan <- shortlist
 			case <- valuefoundchan:
-				end = true
+				resultchan <- shortlist
 			}
 		}
 	}()
@@ -768,7 +822,19 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 		}
 	}
 }
+func ValueGetLength(findlengthchan chan<- bool, lengthresultchan <-chan int) int {
+	fmt.Println("try to get length")
+	findlengthchan <- true
+	length := <- lengthresultchan
+	fmt.Println("get length")
+	return length
+}
 
+func ValueNoCloserNode(nocloserchan chan<- bool,completechan <-chan bool) bool{
+	nocloserchan <- true
+	complete :=<- completechan
+	return complete
+}
 
 // For project 3!
 func (k *Kademlia) Vanish(data []byte, numberKeys byte,
