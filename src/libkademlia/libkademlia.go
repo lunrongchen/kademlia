@@ -18,7 +18,7 @@ const (
 	Alpha = 3
 	B     = 8 * IDBytes
 	K     = 20
-	LimitedTime = 30 * time.Millisecond
+	LimitedTime = 300 * time.Millisecond
 )
 
 // Kademlia type. You can put whatever state you need in this.
