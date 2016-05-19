@@ -618,7 +618,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 		}()
 		break_for_loop := false
 
-        count = 0
 		for ; count > 0; count-- {
 			select {
 			case boolTimeOut := <- timeOut:
