@@ -1,0 +1,18 @@
+For checking the correctness of the implementation of kademlia we write five following testcases:
+
+1. func TestIterativeFindNode
+   Create 30 nodes in total and connect them in link. Call DoIterativeFindNode function to find one node in the link.
+   We checked that the return k contacts are correct.
+2. func TestIterativeFindNode1
+   Create 30 nodes in total and connect them in graph. Call DoIterativeFindNode function to find one node.
+   We checked that the target contact node is in the k return contacts.
+3. func TestIterativeFindValue
+   Create 30 nodes in total and connect them in graph. Call DoIterativeFindValue function to find a node ID as key.
+   And generate a string value. We checked that we found the correct value.
+4. func TestIterativeStore
+   Create 30 nodes in total and connect them in link. We generate a random key and call the DoIterativeFindNode function.
+   (Since in IterativeStore function we first need to find the k closest nodes to the key). And then check that the return
+   contacts are k closest contacts. And finally call FindLocalValue to check the key is correctly stored.
+   
+   
+   
