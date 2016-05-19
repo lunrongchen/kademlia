@@ -5,8 +5,9 @@ import (
 	"net"
 	"strconv"
 	"testing"
-	"sort"
 	"fmt"
+	"sort"
+	// "time"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -66,8 +67,7 @@ func TestIterativeFindNode(t *testing.T) {
 		}
 }
 
-// HSQ version iterFindNode success
-func TestIterativeFindNode2(t *testing.T) {
+func TestIterativeFindNode1(t *testing.T) {
 	instance := make([]*Kademlia,30)
     host := make([]net.IP, 30)
     port := make([]uint16, 30)
