@@ -302,7 +302,6 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		return nil, nil, &CommandFailed{"Not implemented"}
 	}
 
-	// fmt.Println("---DoFindValue : " + string(res.Value) + "\n")
 	for i := 0; i < len(res.Nodes); i++ {
 		k.ContactChan <- &(res.Nodes[i])
 	}
@@ -321,7 +320,6 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	Value := <- res.KVSearchRestChan
 	if found == true {
 		return Value, nil
-		// fmt.Println("FindValue : " + string(Value) + "\n")
 	} 
 	return []byte(""), nil
 }
@@ -360,7 +358,7 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
-		if prefixLength + i < B {
+		if prefixLength + i < B && i != 0{
 			k.BucketsIndexChan <- (prefixLength + i)
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
@@ -421,24 +419,20 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shor
 
 func (k *Kademlia) SendFindNodeQuery(c Contact, activeMapSearchChan chan ID, 
 	activeMapResultChan chan bool, activeMapUpdateChan chan * activeUpdate, 
-	waitChan chan int, nodeChan chan Contact) {
+	waitChan chan int, nodeChan chan Contact,target ID) {
 
 	tmpUpdate := new(activeUpdate)
 	tmpUpdate.targetID = c.NodeID
 	tmpUpdate.boolActive = true
-	activeMapUpdateChan <- tmpUpdate        //Set true first
-
-	nodeResult, err := k.DoFindNode(&c, c.NodeID)
-
+	activeMapUpdateChan <- tmpUpdate        
+	res,err := k.DoFindNode(&c, target)
 	if err != nil {
 		tmpUpdate.boolActive = false
-		activeMapUpdateChan <- tmpUpdate   //Set false if failed
 	}
-
 	activeMapSearchChan <- c.NodeID
 	activeMapResultBool := <- activeMapResultChan
 	if activeMapResultBool == true {
-		for _, node := range nodeResult {
+		for _, node := range res {
 			nodeChan <- node
 		}
 	}
@@ -453,24 +447,23 @@ func (k *Kademlia) SendFindValueQuery(c Contact, activeMapSearchChan chan ID,
 	tmpUpdate := new(activeUpdate)
 	tmpUpdate.targetID = c.NodeID
 	tmpUpdate.boolActive = true
-	activeMapUpdateChan <- tmpUpdate        //Set true first
+	activeMapUpdateChan <- tmpUpdate        
 
-	valueResult, nodeResult, err := k.DoFindValue(&c, c.NodeID)
+	value,res,err := k.DoFindValue(&c, target)
 	if err != nil {
 		tmpUpdate.boolActive = false
-		activeMapUpdateChan <- tmpUpdate   //Set false if failed
+		activeMapUpdateChan <- tmpUpdate
 	}
-
 	activeMapSearchChan <- c.NodeID
 	activeMapResultBool := <- activeMapResultChan
-	if valueResult == nil {
+	if value == nil {
 		if activeMapResultBool == true {
-			for _, node := range nodeResult {
+			for _, node := range res {
 				nodeChan <- node
 			}
 		}
 	} else {
-		valueChan <- valueResult
+		valueChan <- value
 	}
 
 	waitChan <- 1
@@ -577,7 +570,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 											activeMapUpdateChan, waitChan, nodeChan, valueChan, target)
 				} else {
 					go k.SendFindNodeQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
-											activeMapUpdateChan, waitChan, nodeChan)
+											activeMapUpdateChan, waitChan, nodeChan, target)
 				}
 				visiteMap[c.contact.NodeID] = true
 				count++
@@ -667,4 +660,3 @@ func (k *Kademlia) Vanish(data []byte, numberKeys byte,
 func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
 	return nil
 }
-
