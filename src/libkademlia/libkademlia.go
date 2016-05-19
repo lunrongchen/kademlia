@@ -18,6 +18,7 @@ const (
 	Alpha = 3
 	B     = 8 * IDBytes
 	K     = 20
+	LimitedTime = 30 * time.Millisecond
 )
 
 // Kademlia type. You can put whatever state you need in this.
@@ -152,9 +153,9 @@ func handleRequest(k *Kademlia) {
 			// fmt.Println("print Stored value : " + string(k.HashTable[kvset.Key]))
 		case kvset := <- k.KVSearchChan:
 			kvset.Value = k.HashTable[kvset.Key]
-			fmt.Println("print Search value : " + string(k.HashTable[kvset.Key]))
+			// fmt.Println("print Search value : " + string(k.HashTable[kvset.Key]))
 			if kvset.Value == nil {
-				fmt.Println("value not found")
+				// fmt.Println("value not found")
 				kvset.KVSearchBoolChan <- false
 				kvset.KVSearchRestChan <- kvset.Value
 			} else {
@@ -301,7 +302,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		return nil, nil, &CommandFailed{"Not implemented"}
 	}
 
-	fmt.Println("---DoFindValue : " + string(res.Value) + "\n")
+	// fmt.Println("---DoFindValue : " + string(res.Value) + "\n")
 	for i := 0; i < len(res.Nodes); i++ {
 		k.ContactChan <- &(res.Nodes[i])
 	}
@@ -320,7 +321,7 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	Value := <- res.KVSearchRestChan
 	if found == true {
 		return Value, nil
-		fmt.Println("FindValue : " + string(Value) + "\n")
+		// fmt.Println("FindValue : " + string(Value) + "\n")
 	} 
 	return []byte(""), nil
 }
@@ -559,7 +560,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				}
 			case value := <-valueChan:
 				result.value = value
-				fmt.Println(string(value) + "Value set in the valueChan\n")
+				// fmt.Println(string(value) + "Value set in the valueChan\n")
 				newNode := new(Contact)
 				newNode.NodeID = result.key
 				shortlist = append(shortlist, ContactDistance{*newNode, (*newNode).NodeID.Xor(target).ToInt()})
@@ -610,7 +611,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 		}
 		timeOut := make(chan bool, 1)
 		go func () {
-			time.Sleep(3 * time.Millisecond)
+			time.Sleep(LimitedTime)
 			timeOut <- true
 		}()
 		break_for_loop := false
@@ -678,7 +679,7 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 		fmt.Println(str + "\n")
 		return result.value, nil
 	} else {
-		fmt.Println("Value is nil\n")
+		fmt.Println("Find Value is nil\n")
 		return nil, nil
 	}
 }

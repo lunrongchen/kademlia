@@ -120,7 +120,7 @@ func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) erro
 	res.MsgID = CopyID(req.MsgID)
 	
 	_, found, Value := k.kademlia.BoolLocalFindValue(req.Key)
-	fmt.Println(string(Value) + "******\n")
+	// fmt.Println(string(Value) + "******\n")
 	if found == true {
 		res.Value = Value
 		return nil
