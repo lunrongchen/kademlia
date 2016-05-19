@@ -360,7 +360,7 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
 		}
-		if prefixLength + i < B {
+		if prefixLength + i < B && i != 0{
 			k.BucketsIndexChan <- (prefixLength + i)
 			bucket := <- k.BucketResultChan
 			Distance(searchID, bucket, &tempList)
@@ -420,37 +420,22 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int,
 	return true
 }
 
-func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID, 
+func (k *Kademlia) SendFindNodeQuery(c Contact, activeMapSearchChan chan ID, 
 	activeMapResultChan chan bool, activeMapUpdateChan chan * activeUpdate, 
-	waitChan chan int, nodeChan chan Contact) {
+	waitChan chan int, nodeChan chan Contact,target ID) {
 
 	tmpUpdate := new(activeUpdate)
 	tmpUpdate.targetID = c.NodeID
 	tmpUpdate.boolActive = true
-	activeMapUpdateChan <- tmpUpdate        //Set true
-
-	req := FindNodeRequest{c, NewRandomID(), c.NodeID}
-	var res FindNodeResult
-
-	port_str := strconv.Itoa(int(c.Port))
-	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
+	activeMapUpdateChan <- tmpUpdate        
+	res,err := k.DoFindNode(&c, target)
 	if err != nil {
-		log.Fatal("DialHTTP: ", err)
 		tmpUpdate.boolActive = false
-		activeMapUpdateChan <- tmpUpdate   //Set false
-	}
-	defer client.Close()
-	err = client.Call("KademliaRPC.FindNode", req, &res)
-
-	if err != nil {
-		log.Fatal("Call: ", err)
-		tmpUpdate.boolActive = false
-		activeMapUpdateChan <- tmpUpdate   //Set false
 	}
 	activeMapSearchChan <- c.NodeID
 	activeMapResultBool := <- activeMapResultChan
 	if activeMapResultBool == true {
-		for _, node := range res.Nodes {
+		for _, node := range res {
 			nodeChan <- node
 		}
 	}
@@ -459,43 +444,30 @@ func SendFindNodeQuery(c Contact, activeMapSearchChan chan ID,
 }
 
 
-func SendFindValueQuery(c Contact, activeMapSearchChan chan ID, 
+func (k *Kademlia) SendFindValueQuery(c Contact, activeMapSearchChan chan ID, 
 	activeMapResultChan chan bool, activeMapUpdateChan chan * activeUpdate, 
 	waitChan chan int, nodeChan chan Contact, valueChan chan []byte, target ID) {
 	tmpUpdate := new(activeUpdate)
 	tmpUpdate.targetID = c.NodeID
 	tmpUpdate.boolActive = true
-	activeMapUpdateChan <- tmpUpdate        //Set true
+	activeMapUpdateChan <- tmpUpdate        
 
-	req := FindValueRequest{c, NewRandomID(), target}
-	res := new(FindValueResult)
-		
-	port_str := strconv.Itoa(int(c.Port))
-	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(c.Host, c.Port), rpc.DefaultRPCPath+port_str)
+	value,res,err := k.DoFindValue(&c, target)
 	if err != nil {
-		log.Fatal("DialHTTP: ", err)
 		tmpUpdate.boolActive = false
-		activeMapUpdateChan <- tmpUpdate   //Set false
+		activeMapUpdateChan <- tmpUpdate
 	}
-	defer client.Close()
-	err = client.Call("KademliaRPC.FindValue", req, &res)
-	if err != nil {
-		log.Fatal("Call: ", err)
-		tmpUpdate.boolActive = false
-		activeMapUpdateChan <- tmpUpdate   //Set false
-	}
-
 	activeMapSearchChan <- c.NodeID
 	activeMapResultBool := <- activeMapResultChan
-	if res.Value == nil {
+	if value == nil {
 		if activeMapResultBool == true {
-			for _, node := range res.Nodes {
+			for _, node := range res {
 				nodeChan <- node
 			}
 		}
 		// fmt.Println(string(res.Value) + "&&-&&&\n")
 	} else {
-		valueChan <- res.Value
+		valueChan <- value
 		// fmt.Println(string(res.Value) + "&&&&&\n")
 	}
 
@@ -599,11 +571,11 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 					break
 				}
 				if findvalue == true {
-					go SendFindValueQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
+					go k.SendFindValueQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
 											activeMapUpdateChan, waitChan, nodeChan, valueChan, target)
 				} else {
-					go SendFindNodeQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
-											activeMapUpdateChan, waitChan, nodeChan)
+					go k.SendFindNodeQuery(c.contact, activeMapSearchChan, activeMapResultChan, 
+											activeMapUpdateChan, waitChan, nodeChan, target)
 				}
 				visiteMap[c.contact.NodeID] = true
 				count++
