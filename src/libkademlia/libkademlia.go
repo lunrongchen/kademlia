@@ -593,9 +593,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 		}
 		count := 0
 		for _, c := range shortlistContents {
-			// if break_for_loop == true {
-			// 	break
-			// }
 			if visiteMap[c.contact.NodeID] == false {
 				if count >= Alpha {
 					break
@@ -663,7 +660,6 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	} else {
 		return result.contacts, nil
 	}
-	// return nil, &CommandFailed{"Not implemented"}
 }
 
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
@@ -685,7 +681,6 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 		fmt.Println("Value is nil\n")
 		return nil, nil
 	}
-	// return nil, &CommandFailed{"Not implemented"}
 }
 
 // For project 3!
