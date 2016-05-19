@@ -415,8 +415,6 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int,
 		}
 		fmt.Println(i)
 	}
-
-	
 	return true
 }
 
@@ -493,20 +491,12 @@ func SendFindValueQuery(c Contact, activeMapSearchChan chan ID,
 				nodeChan <- node
 			}
 		}
-		fmt.Println(string(res.Value) + "&&-&&&\n")
+		// fmt.Println(string(res.Value) + "&&-&&&\n")
 	} else {
 		valueChan <- res.Value
-		fmt.Println(string(res.Value) + "&&&&&\n")
+		// fmt.Println(string(res.Value) + "&&&&&\n")
 	}
-	// // if res.Value == nil {
-	// if activeMapResultBool == true {
-	// 	for _, node := range res.Nodes {
-	// 		nodeChan <- node
-	// 	}
-	// }
-	// // } else {
-	// valueChan <-res.Value
-	// // }
+
 	waitChan <- 1
 }
 
@@ -535,16 +525,20 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	}
 	result.value = nil
 	for _, node := range tempShortList {
-		// shortlistUpdateTmp1 := new(shortlistUpdate)
-		// shortlistUpdateTmp1.BoolSort = false
-		// shortlistUpdateTmp1.AppendItem = ContactDistance{node, node.NodeID.Xor(target).ToInt()}
-		// shortlistUpdateChan <- shortlistUpdateTmp1
-
 		shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
 	}
 	go func() {
 		for {
 			select {
+			case tmpUpdate := <-activeMapUpdateChan:
+				activeMap[tmpUpdate.targetID] = tmpUpdate.boolActive
+			case activeID := <-activeMapSearchChan:
+				tmpResult := activeMap[activeID]
+				if tmpResult == false {
+					activeMapResultChan <- false
+				} else {
+					activeMapResultChan <- true
+				}
 			case  shortlistUpdateTmp := <- shortlistUpdateChan:
 				if shortlistUpdateTmp.BoolSort == false {
 					shortlist = append(shortlist, shortlistUpdateTmp.AppendItem)
@@ -560,11 +554,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 					}
 				}
 				if BoolFound == false{
-					// shortlistUpdateTmp2 := new(shortlistUpdate)
-					// shortlistUpdateTmp2.BoolSort = false
-					// shortlistUpdateTmp2.AppendItem = ContactDistance{node, node.NodeID.Xor(target).ToInt()}
-					// shortlistUpdateChan <- shortlistUpdateTmp2
-
 					shortlist = append(shortlist, ContactDistance{node, node.NodeID.Xor(target).ToInt()})
 				}
 			case value := <-valueChan:
@@ -572,22 +561,7 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				fmt.Println(string(value) + "Value set in the valueChan\n")
 				newNode := new(Contact)
 				newNode.NodeID = result.key
-
-				// shortlistUpdateTmp3 := new(shortlistUpdate)
-				// shortlistUpdateTmp3.BoolSort = false
-				// shortlistUpdateTmp3.AppendItem = ContactDistance{*newNode, (*newNode).NodeID.Xor(target).ToInt()}
-				// shortlistUpdateChan <- shortlistUpdateTmp3
-
 				shortlist = append(shortlist, ContactDistance{*newNode, (*newNode).NodeID.Xor(target).ToInt()})
-			case tmpUpdate := <-activeMapUpdateChan:
-				activeMap[tmpUpdate.targetID] = tmpUpdate.boolActive
-			case activeID := <-activeMapSearchChan:
-				tmpResult := activeMap[activeID]
-				if tmpResult == false {
-					activeMapResultChan <- false
-				} else {
-					activeMapResultChan <- true
-				}
 			case getLenBool := <- shortlistGetLenChan:
 				if getLenBool == true {
 					shortlistResLenChan <- len(shortlist)
