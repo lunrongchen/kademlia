@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 	"fmt"
-	// "time"
+	"time"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -216,7 +216,6 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 // }
 
 
-
 func TestFindValue_other(t *testing.T) {
 	// tree structure;
 	// A->B->tree
@@ -300,7 +299,7 @@ func TestIterativeFindNode_other(t *testing.T) {
 	//t.Log("Wait for connect")
 	//Connect(t, tree_node, kNum)
 	//t.Log("Connect!")
-	// time.Sleep(100 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	//cHeap := PriorityQueue{instance2.SelfContact, []Contact{}, SearchKey}
 	//t.Log("Wait for iterative")
 	res, err := instance2.DoIterativeFindNode(SearchKey)
@@ -359,7 +358,6 @@ func TestIterativeFindValue_HSQ(t *testing.T) {
 	}
 
 	findvalue, err := instance[0].DoIterativeFindValue(key)
-	// t.Error(string(findvalue) + "-------------findvalue------\n")
 	if err != nil {
 		t.Error("value not found ")
 		return
@@ -369,6 +367,3 @@ func TestIterativeFindValue_HSQ(t *testing.T) {
 	}
 	return
 }
-
-
-
