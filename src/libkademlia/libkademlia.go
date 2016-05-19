@@ -11,6 +11,7 @@ import (
 	"net/rpc"
 	"strconv"
 	"sort"
+	"time"
 )
 
 const (
@@ -590,7 +591,6 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 			tmpDistanceContact := <- shortlistResContensChan
 			shortlistContents = append(shortlistContents, tmpDistanceContact)
 		}
-
 		count := 0
 		for _, c := range shortlistContents {
 			if visiteMap[c.contact.NodeID] == false {
@@ -608,8 +608,27 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				count++
 			}
 		}
+		timeOut := make(chan bool, 1)
+		go func () {
+			time.Sleep(3 * time.Millisecond)
+			timeOut <- true
+		}()
+		break_for_loop := false
+
 		for ; count > 0; count-- {
-			<-waitChan
+			select {
+			case boolTimeOut := <- timeOut:
+				fmt.Println("timeout")
+				fmt.Println("Before Break")
+				if boolTimeOut == true {
+					break_for_loop = true
+				}
+			case <-waitChan:
+				// break
+			}
+			if break_for_loop == true {
+				break
+			}
 		}
 	}
 	result.contacts = make([]Contact, 0)
@@ -641,7 +660,6 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 	} else {
 		return result.contacts, nil
 	}
-	// return nil, &CommandFailed{"Not implemented"}
 }
 
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
@@ -663,7 +681,6 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 		fmt.Println("Value is nil\n")
 		return nil, nil
 	}
-	// return nil, &CommandFailed{"Not implemented"}
 }
 
 // For project 3!
