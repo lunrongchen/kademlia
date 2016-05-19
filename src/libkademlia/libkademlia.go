@@ -11,15 +11,15 @@ import (
 	"net/rpc"
 	"strconv"
 	"sort"
-	"time"
-	"bytes"
 	"math"
+	"bytes"
+	"time"
 )
 
 const (
-	alpha = 3
-	b     = 8 * IDBytes
-	k     = 20
+	Alpha = 3
+	B     = 8 * IDBytes
+	K     = 20
 )
 
 // Kademlia type. You can put whatever state you need in this.
@@ -68,7 +68,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.BucketsIndexChan = make(chan int)
 	k.BucketResultChan = make(chan []Contact)
 	k.RoutingTable = new(Router)
-	k.RoutingTable.Buckets = make([][]Contact, b)
+	k.RoutingTable.Buckets = make([][]Contact, B)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -108,7 +108,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	// fmt.Println("update started")
 	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
-	if prefixLength == 160 {
+	if prefixLength == B {
 		return
 	}
 	var tmpContact Contact
@@ -126,7 +126,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	}
 	// fmt.Println("update finished")
 	if found == false {
-		if len(*bucket) <= 20 {
+		if len(*bucket) <= K {
 			*bucket = append(*bucket, *contact)
 		} else {
 			_,err:=k.DoPing((*bucket)[0].Host,(*bucket)[0].Port)
@@ -146,17 +146,17 @@ func handleRequest(k *Kademlia) {
 	for {
 		select {
 		case contact := <- k.ContactChan: 
-			if contact.NodeID != k.NodeID {
-				k.UpdateRoutingTable(contact)
-			}
-			// fmt.Println("get from channel from ContantChan: " + contact.NodeID.AsString())
+			// fmt.Println("get from Contact channel : " + contact.NodeID.AsString())
+			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
-			fmt.Println("get from channel : " + string(kvset.Value))
+			// fmt.Println("get from KeValue channel : " + string(kvset.Value))
 			k.HashTable[kvset.Key] = kvset.Value
-			fmt.Println("print value : " + string(k.HashTable[kvset.Key]))
+			// fmt.Println("print Stored value : " + string(k.HashTable[kvset.Key]))
 		case kvset := <- k.KVSearchChan:
 			kvset.Value = k.HashTable[kvset.Key]
+			fmt.Println("print Search value : " + string(k.HashTable[kvset.Key]))
 			if kvset.Value == nil {
+				fmt.Println("value not found")
 				kvset.KVSearchBoolChan <- false
 				kvset.KVSearchRestChan <- kvset.Value
 			} else {
@@ -164,9 +164,7 @@ func handleRequest(k *Kademlia) {
 				kvset.KVSearchRestChan <- kvset.Value
 			}
 		case bucketIndex := <- k.BucketsIndexChan:
-			//fmt.Println("return result from RoutingTable")
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
-			//fmt.Println("send back result from RoutingTable")
 		}
 	}
 }
@@ -235,11 +233,11 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 		return nil, &CommandFailed{
 			"Unable to ping " + fmt.Sprintf("%s:%v", host.String(), port)}
 	}
-	// fmt.Println("receive: " + pong.Sender.NodeID.AsString())
+	fmt.Println("receive: " + pong.Sender.NodeID.AsString())
 
 	k.ContactChan <- &(&pong).Sender
 	defer client.Close()
-	return &(&pong).Sender, nil
+	return nil, nil
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
@@ -264,8 +262,6 @@ func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
 
 func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error) {
 	// TODO: Implement
-
-	fmt.Println("dofindnode function called")
 	req := FindNodeRequest{k.SelfContact, NewRandomID(), searchKey}
 	var res FindNodeResult
 
@@ -273,19 +269,17 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
+		return nil, &CommandFailed{"Not implemented"}
 	}
 	defer client.Close()
-	fmt.Println("RPC do find node !!!")
 	err = client.Call("KademliaRPC.FindNode", req, &res)
-	fmt.Println("return do find node result!!!")
+
 	if err != nil {
 		log.Fatal("Call: ", err)
 		return nil, &CommandFailed{"Not implemented"}
-
 	}
-
 	for i := 0; i < len(res.Nodes); i++ {
-	  		k.ContactChan <- &(res.Nodes[i])
+		k.ContactChan <- &(res.Nodes[i])
 	}
 	return res.Nodes, nil
 }
@@ -300,6 +294,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 	if err != nil {
 		log.Fatal("DialHTTP: ", err)
+		return nil, nil, &CommandFailed{"Not implemented"}
 	}
 	defer client.Close()
 	err = client.Call("KademliaRPC.FindValue", req, &res)
@@ -307,9 +302,12 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 		log.Fatal("Call: ", err)
 		return nil, nil, &CommandFailed{"Not implemented"}
 	}
+
+	fmt.Println("---DoFindValue : " + string(res.Value) + "\n")
 	for i := 0; i < len(res.Nodes); i++ {
-	  		k.ContactChan <- &(res.Nodes[i])
+		k.ContactChan <- &(res.Nodes[i])
 	}
+
 	return res.Value, res.Nodes, nil
 }
 
@@ -324,8 +322,9 @@ func (k *Kademlia) LocalFindValue(searchKey ID) ([]byte, error) {
 	Value := <- res.KVSearchRestChan
 	if found == true {
 		return Value, nil
+		fmt.Println("FindValue : " + string(Value) + "\n")
 	} 
-	return []byte(""), &CommandFailed{"Not found"}
+	return []byte(""), nil
 }
 
 func (k *Kademlia) BoolLocalFindValue(searchKey ID) (result *KeyValueSet, found bool, Value []byte) {
@@ -351,30 +350,20 @@ func Distance(des ID, bucket []Contact, tempList *[]ContactDistance) {
 func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	result = make([]Contact, 0)
 	tempList := make([]ContactDistance, 0)
-	fmt.Println("00000000000")
 	prefixLength := searchID.Xor(k.RoutingTable.SelfContact.NodeID).PrefixLen()
-	fmt.Println("FindClosest0000")
-	fmt.Println("prefixLength"+strconv.Itoa(prefixLength))
-	fmt.Println(prefixLength)
-	for i := 0; (prefixLength - i >= 0 || prefixLength + i < 160) && len(tempList) < num; i++ {
-		if prefixLength == 160-i {
+	for i := 0; (prefixLength - i >= 0 || prefixLength + i < B) && len(tempList) < num; i++ {
+		if prefixLength == B && prefixLength - i == B {
 			tempList = append(tempList, ContactDistance{k.RoutingTable.SelfContact, 0})
 			continue
-	    }
+		}
 		if prefixLength - i >= 0 {
-			//fmt.Println("FindClosest1111")
 			k.BucketsIndexChan <- (prefixLength - i)
-			fmt.Println("FindClosest2222")
 			bucket := <- k.BucketResultChan
-			//fmt.Println("FindClosest3333")
 			Distance(searchID, bucket, &tempList)
 		}
-		if prefixLength + i < 160 && i != 0{
-			//fmt.Println("FindClosest4444")
+		if prefixLength + i < B {
 			k.BucketsIndexChan <- (prefixLength + i)
-			//fmt.Println("FindClosest5555")
 			bucket := <- k.BucketResultChan
-			//fmt.Println("FindClosest6666")
 			Distance(searchID, bucket, &tempList)
 		}
 	}
@@ -382,6 +371,7 @@ func (k *Kademlia) FindClosest(searchID ID, num int) (result []Contact){
 	if len(tempList) > num {
 		tempList = tempList[:num]
 	}
+
 	for _, value := range tempList {
 		result = append(result, value.contact)
 	}
