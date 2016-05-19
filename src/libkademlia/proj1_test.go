@@ -5,8 +5,8 @@ import (
 	"net"
 	"strconv"
 	"testing"
-	//"fmt"
-	//"time"
+	"fmt"
+	"time"
 )
 
 func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
@@ -216,154 +216,154 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 // }
 
 
-// func TestFindValue_other(t *testing.T) {
-// 	// tree structure;
-// 	// A->B->tree
-// 	/*
-// 	         C
-// 	      /
-// 	  A-B -- D
-// 	      \
-// 	         E
-// 	*/
-// 	instance := make([]*Kademlia,30)
-// 	host := make([]net.IP, 30)
-// 	port := make([]uint16, 30)
-// 	for i := 30; i < 60; i++ {
-// 		hostnumber := "localhost:"+strconv.Itoa(7900+i)
-// 		instance[i-30] = NewKademlia(hostnumber)
-// 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
-// 	}
-// 	for k := 0; k < 29; k++ {
-// 		instance[k].DoPing(host[k+1], port[k+1])
-// 	}
-// 	key := NewRandomID()
-// 	value := []byte("Hello world")
-// 	// err := instance[10].DoStore(&(instance[10].SelfContact), key, value)   //problem of contact???
-// 	// if err != nil {
-// 	// 	t.Error("Could not store value")
-// 	// }
-// 	err := instance[0].DoStore(&(instance[1].SelfContact), key, value)
-// 	if !bytes.Equal(instance[1].HashTable[key],value) {
-// 		t.Error("Stored value in hashtable is not correct")
-// 	}
-// 	// ///// print all stored value
-// 	// for i := 0; i < 30; i++{
-// 	// 	if instance[i].HashTable != nil {
-// 	// 		fmt.Println("stored value:" + instance[i].NodeID.AsString() + String(map["key"]))
-// 	// 	}
-// 	// }
-// 	foundValue, _, err := instance[0].DoFindValue(&(instance[1].SelfContact),key)
-// 	if err != nil {
-// 		t.Error("Error of do find value")
-// 		return
-// 	}
-// 	if foundValue != nil{
-// 		if !bytes.Equal(foundValue, value) {
-// 			t.Error("Stored value did not match found value")
-// 		}
-// 	} else {
-// 		t.Error("Do not find value")
-// 	}
-// }
-
-// func TestIterativeFindNode_other(t *testing.T) {
-// 	// tree structure;
-// 	// A->B->tree
-// 	/*
-// 	          C
-// 	       /
-// 	   A-B -- D
-// 	       \
-// 	          E
-// 	*/
-// 	kNum := 40
-// 	targetIdx := kNum - 10
-// 	instance2 := NewKademlia("localhost:7305")
-// 	host2, port2, _ := StringToIpPort("localhost:7305")
-// 	//  instance2.DoPing(host2, port2)
-// 	tree_node := make([]*Kademlia, kNum)
-// 	//t.Log("Before loop")
-// 	for i := 0; i < kNum; i++ {
-// 		address := "localhost:" + strconv.Itoa(7306+i)
-// 		tree_node[i] = NewKademlia(address)
-// 		tree_node[i].DoPing(host2, port2)
-// 		t.Log("ID:" + tree_node[i].SelfContact.NodeID.AsString())
-// 	}
-// 	for i := 0; i < kNum; i++ {
-// 		if i != targetIdx {
-// 			tree_node[targetIdx].DoPing(tree_node[i].SelfContact.Host, tree_node[i].SelfContact.Port)
-// 		}
-// 	}
-// 	SearchKey := tree_node[targetIdx].SelfContact.NodeID
-// 	//t.Log("Wait for connect")
-// 	//Connect(t, tree_node, kNum)
-// 	//t.Log("Connect!")
-// 	time.Sleep(100 * time.Millisecond)
-// 	//cHeap := PriorityQueue{instance2.SelfContact, []Contact{}, SearchKey}
-// 	//t.Log("Wait for iterative")
-// 	res, err := instance2.DoIterativeFindNode(SearchKey)
-// 	// res := nil
-// 	if err != nil {
-// 		t.Error(err.Error())
-// 	}
-// 	t.Log("SearchKey:" + SearchKey.AsString())
-// 	if res == nil || len(res) == 0 {
-// 		t.Error("No contacts were found")
-// 	}
-// 	find := false
-// 	fmt.Print("# of results: ")
-// 	fmt.Println(len(res))
-// 	for _, value := range res {
-// 		t.Log(value.NodeID.AsString())
-// 		if value.NodeID.Equals(SearchKey) {
-// 			find = true
-// 		}
-// 		//      heap.Push(&cHeap, value)
-// 	}
-// 	//  c := cHeap.Pop().(Contact)
-// 	//  t.Log("Closet Node:" + c.NodeID.AsString())
-// 	//  t.Log(strconv.Itoa(cHeap.Len()))
-// 	if !find {
-// 		t.Log("Instance2:" + instance2.NodeID.AsString())
-// 		t.Error("Find wrong id")
-// 	}
-// 	//t.Error(len(res))
-// 	//return
-// }
-
-func TestIterativeFindValue_HSQ(t *testing.T) {
+func TestFindValue_other(t *testing.T) {
+	// tree structure;
+	// A->B->tree
+	/*
+	         C
+	      /
+	  A-B -- D
+	      \
+	         E
+	*/
 	instance := make([]*Kademlia,30)
-    host := make([]net.IP, 30)
-    port := make([]uint16, 30)
+	host := make([]net.IP, 30)
+	port := make([]uint16, 30)
 	for i := 30; i < 60; i++ {
-		hostnumber := "localhost:81"+strconv.Itoa(i)
+		hostnumber := "localhost:"+strconv.Itoa(7900+i)
 		instance[i-30] = NewKademlia(hostnumber)
 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
 	}
 	for k := 0; k < 29; k++ {
 		instance[k].DoPing(host[k+1], port[k+1])
 	}
-	for k := 0; k < 25; k++ {
-		instance[k].DoPing(host[k+3], port[k+3])
-	}
-	for k := 0; k < 20; k++ {
-		instance[k].DoPing(host[k+5], port[k+5])
-	}
-	key := instance[11].NodeID
+	key := NewRandomID()
 	value := []byte("Hello world")
-	err := instance[10].DoStore(&(instance[11].SelfContact), key, value)
-    if err != nil {
-		t.Error("Could not store value")
+	// err := instance[10].DoStore(&(instance[10].SelfContact), key, value)   //problem of contact???
+	// if err != nil {
+	// 	t.Error("Could not store value")
+	// }
+	err := instance[0].DoStore(&(instance[1].SelfContact), key, value)
+	if !bytes.Equal(instance[1].HashTable[key],value) {
+		t.Error("Stored value in hashtable is not correct")
 	}
-
-	findvalue, err := instance[0].DoIterativeFindValue(key)
+	// ///// print all stored value
+	// for i := 0; i < 30; i++{
+	// 	if instance[i].HashTable != nil {
+	// 		fmt.Println("stored value:" + instance[i].NodeID.AsString() + String(map["key"]))
+	// 	}
+	// }
+	foundValue, _, err := instance[0].DoFindValue(&(instance[1].SelfContact),key)
 	if err != nil {
-		t.Error("value not found ")
+		t.Error("Error of do find value")
 		return
 	}
-	if !bytes.Equal(findvalue, value) {
-		t.Error("Stored value did not match found value")
+	if foundValue != nil{
+		if !bytes.Equal(foundValue, value) {
+			t.Error("Stored value did not match found value")
+		}
+	} else {
+		t.Error("Do not find value")
 	}
-	return
 }
+
+func TestIterativeFindNode_other(t *testing.T) {
+	// tree structure;
+	// A->B->tree
+	/*
+	          C
+	       /
+	   A-B -- D
+	       \
+	          E
+	*/
+	kNum := 40
+	targetIdx := kNum - 10
+	instance2 := NewKademlia("localhost:7305")
+	host2, port2, _ := StringToIpPort("localhost:7305")
+	//  instance2.DoPing(host2, port2)
+	tree_node := make([]*Kademlia, kNum)
+	//t.Log("Before loop")
+	for i := 0; i < kNum; i++ {
+		address := "localhost:" + strconv.Itoa(7306+i)
+		tree_node[i] = NewKademlia(address)
+		tree_node[i].DoPing(host2, port2)
+		t.Log("ID:" + tree_node[i].SelfContact.NodeID.AsString())
+	}
+	for i := 0; i < kNum; i++ {
+		if i != targetIdx {
+			tree_node[targetIdx].DoPing(tree_node[i].SelfContact.Host, tree_node[i].SelfContact.Port)
+		}
+	}
+	SearchKey := tree_node[targetIdx].SelfContact.NodeID
+	//t.Log("Wait for connect")
+	//Connect(t, tree_node, kNum)
+	//t.Log("Connect!")
+	time.Sleep(100 * time.Millisecond)
+	//cHeap := PriorityQueue{instance2.SelfContact, []Contact{}, SearchKey}
+	//t.Log("Wait for iterative")
+	res, err := instance2.DoIterativeFindNode(SearchKey)
+	// res := nil
+	if err != nil {
+		t.Error(err.Error())
+	}
+	t.Log("SearchKey:" + SearchKey.AsString())
+	if res == nil || len(res) == 0 {
+		t.Error("No contacts were found")
+	}
+	find := false
+	fmt.Print("# of results: ")
+	fmt.Println(len(res))
+	for _, value := range res {
+		t.Log(value.NodeID.AsString())
+		if value.NodeID.Equals(SearchKey) {
+			find = true
+		}
+		//      heap.Push(&cHeap, value)
+	}
+	//  c := cHeap.Pop().(Contact)
+	//  t.Log("Closet Node:" + c.NodeID.AsString())
+	//  t.Log(strconv.Itoa(cHeap.Len()))
+	if !find {
+		t.Log("Instance2:" + instance2.NodeID.AsString())
+		t.Error("Find wrong id")
+	}
+	//t.Error(len(res))
+	//return
+}
+
+// func TestIterativeFindValue_HSQ(t *testing.T) {
+// 	instance := make([]*Kademlia,30)
+//     host := make([]net.IP, 30)
+//     port := make([]uint16, 30)
+// 	for i := 30; i < 60; i++ {
+// 		hostnumber := "localhost:81"+strconv.Itoa(i)
+// 		instance[i-30] = NewKademlia(hostnumber)
+// 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+// 	}
+// 	for k := 0; k < 29; k++ {
+// 		instance[k].DoPing(host[k+1], port[k+1])
+// 	}
+// 	for k := 0; k < 25; k++ {
+// 		instance[k].DoPing(host[k+3], port[k+3])
+// 	}
+// 	for k := 0; k < 20; k++ {
+// 		instance[k].DoPing(host[k+5], port[k+5])
+// 	}
+// 	key := instance[11].NodeID
+// 	value := []byte("Hello world")
+// 	err := instance[10].DoStore(&(instance[11].SelfContact), key, value)
+//     if err != nil {
+// 		t.Error("Could not store value")
+// 	}
+
+// 	findvalue, err := instance[0].DoIterativeFindValue(key)
+// 	if err != nil {
+// 		t.Error("value not found ")
+// 		return
+// 	}
+// 	if !bytes.Equal(findvalue, value) {
+// 		t.Error("Stored value did not match found value")
+// 	}
+// 	return
+// }
