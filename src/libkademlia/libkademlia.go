@@ -25,6 +25,8 @@ type Kademlia struct {
 	SelfContact			Contact
 	RoutingTable			*Router
 	HashTable			map[ID][]byte
+	// HashTableKeyChan  chan ID 
+	// HashTableValueChan   chan []byte
 	ContactChan			chan *Contact
 	KeyValueChan			chan *KeyValueSet
 	KVSearchChan			chan *KeyValueSet
@@ -59,6 +61,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k := new(Kademlia)
 	k.NodeID = nodeID
 	k.HashTable = make(map[ID] []byte)
+	// k.HashTableKeyChan = make(chan ID)
+	// k.HashTableValueChan =make(chan []byte)
 	k.ContactChan = make(chan * Contact)
 	k.KeyValueChan = make(chan * KeyValueSet)
 	k.KVSearchChan = make(chan * KeyValueSet)
@@ -147,18 +151,19 @@ func handleRequest(k *Kademlia) {
 			k.UpdateRoutingTable(contact)
 		case kvset := <- k.KeyValueChan:
 			// fmt.Println("get from KeValue channel : " + string(kvset.Value))
+			// k.HashTableValueChan <- kvset.Value
 			k.HashTable[kvset.Key] = kvset.Value
 			// fmt.Println("print Stored value : " + string(k.HashTable[kvset.Key]))
-		case kvset := <- k.KVSearchChan:
-			kvset.Value = k.HashTable[kvset.Key]
-			fmt.Println("print Search value : " + string(k.HashTable[kvset.Key]))
-			if kvset.Value == nil {
+		case kvsearch := <- k.KVSearchChan:
+			kvsearch.Value = k.HashTable[kvsearch.Key]
+			fmt.Println("print Search value : " + string(k.HashTable[kvsearch.Key]))
+			if kvsearch.Value == nil {
 				fmt.Println("value not found")
-				kvset.KVSearchBoolChan <- false
-				kvset.KVSearchRestChan <- kvset.Value
+				kvsearch.KVSearchBoolChan <- false
+				kvsearch.KVSearchRestChan <- kvsearch.Value
 			} else {
-				kvset.KVSearchBoolChan <- true
-				kvset.KVSearchRestChan <- kvset.Value
+				kvsearch.KVSearchBoolChan <- true
+				kvsearch.KVSearchRestChan <- kvsearch.Value
 			}
 		case bucketIndex := <- k.BucketsIndexChan:
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
