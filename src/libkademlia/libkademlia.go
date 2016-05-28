@@ -25,7 +25,7 @@ const (
 type Kademlia struct {
 	NodeID				ID
 	SelfContact			Contact
-	RoutingTable			*Router
+	RoutingTable		*Router
 	HashTable			map[ID][]byte
 	ContactChan			chan *Contact
 	KeyValueChan			chan *KeyValueSet
@@ -654,7 +654,9 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 // For project 3!
 func (k *Kademlia) Vanish(data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
-	return
+	vdo = k.VanishData(data, numberKeys, threshold, timeoutSeconds)
+
+	return vdo
 }
 
 func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {

@@ -7,7 +7,7 @@ import (
 	"io"
 	mathrand "math/rand"
 	"time"
-	//"sss"
+	"sss"
 )
 
 type VanashingDataObject struct {
@@ -74,9 +74,38 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 
 func (k *Kademlia) VanishData(data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
-	return
+	K := GenerateRandomCryptoKey()
+	ciphertext := encrypt(K, data)
+	vanishmap,_ := sss.Split(numberKeys, threshold, ciphertext)
+	L := GenerateRandomAccessKey()
+	ids := CalculateSharedKeyLocations(L, int64(numberKeys))
+	i := 0
+	for key,value :=  range vanishmap {
+		all := append([]byte{key}, value...)
+		k.DoIterativeStore(ids[i],all)
+		i = i + 1;
+	}
+	vdo = VanashingDataObject {L, ciphertext, numberKeys, threshold}
+	return vdo
 }
 
 func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
-	return nil
+	L := vdo.AccessKey
+	numberKeys := vdo.NumberKeys
+	ids := CalculateSharedKeyLocations(L, int64(numberKeys))
+	unvanishmap := make(map[byte] []byte)
+	for _,id := range ids {
+		value,_ := k.DoIterativeFindValue(id)
+		if value != nil{
+			key := value[0]
+			v := value[1:]
+			unvanishmap[key] = v
+			if len(unvanishmap) == int(vdo.Threshold) {
+				break
+			}
+		}
+	}
+	K := sss.Combine(unvanishmap)
+	D := decrypt(K, vdo.Ciphertext)
+	return D
 }

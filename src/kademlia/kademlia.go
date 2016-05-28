@@ -353,6 +353,28 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 		} else {
 			response = fmt.Sprintf("OK: Found value %s", value)
 		}
+	// case toks[0] == "vanish":
+	// 	// performa an iterative find value
+	// 	if len(toks) != 4 {
+	// 		response = "usage: vanish [VOD ID] [data] [numberKeys] [threshold]"
+	// 		return
+	// 	}
+	// 	key, err := libkademlia.IDFromString(toks[1])
+	// 	if err != nil {
+	// 		response = "ERR: Provided an invalid vod id (" + toks[1] + ")"
+	// 		return
+	// 	}
+	// 	vod := libkademlia.Vanish(toks[1],toks[2],toks[3],toks[4])
+	// 	if err != nil {
+	// 		response = "ERR: Provided an invalid key (" + toks[1] + ")"
+	// 		return
+	// 	}
+	// 	value, err := k.DoIterativeFindValue(key)
+	// 	if err != nil {
+	// 		response = fmt.Sprintf("ERR: %s", err)
+	// 	} else {
+	// 		response = fmt.Sprintf("OK: Found value %s", value)
+	// 	}
 
 	default:
 		response = "ERR: Unknown command"

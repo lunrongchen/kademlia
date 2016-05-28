@@ -1,0 +1,21 @@
+For checking the correctness of the implementation of kademlia we write five following testcases:
+
+1. func TestIterativeFindNode
+   Create 30 nodes in total and connect them in link. Call DoIterativeFindNode function to find one node in the link.
+   We checked that the return k contacts are correct.
+2. func TestIterativeFindNode1
+   Create 30 nodes in total and connect them in graph. Call DoIterativeFindNode function to find one node.
+   We checked that the target contact node is in the k return contacts.
+3. func TestIterativeFindValue
+   Create 30 nodes in total and connect them in graph. Call DoIterativeFindValue function to find a node ID as key.
+   And generate a string value. We checked that we found the correct value.
+4. func TestIterativeStore
+   Create 30 nodes in total and connect them in link. We generate a random key and call the DoIterativeFindNode function.
+   (Since in IterativeStore function we first need to find the k closest nodes to the key). And then check that the return
+   contacts are k closest contacts. And finally call FindLocalValue to check the key is correctly stored.
+   
+   
+Some  change on test and limit time:
+When we did the normal test mode-> “go test libkademlia”,  all test case could be finish and return ok message, however, if we run in race test mode  -> “go test -race libkademlia”, the timeout error would be happened and return wrong message, the reason we think is that golang need more time to check thread safe , so some roc call would out of 300m second and return error. In order to make sure all test case both pass in normal mode and race mode, we changed the limits time in the const variable.  After this change, all test case return ok message in both normal and race mode.
+Any question about this edit, please be free to contact Benjamin 
+(lct595, lunrongchen@acm.org).
