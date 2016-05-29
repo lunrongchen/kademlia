@@ -1,0 +1,24 @@
+
+
+
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7890 127.0.0.1:7890
+
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7894 127.0.0.1:7890
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7893 127.0.0.1:7890
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7892 127.0.0.1:7890
