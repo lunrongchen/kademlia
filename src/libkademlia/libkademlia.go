@@ -34,6 +34,7 @@ type Kademlia struct {
 	BucketsIndexChan		chan int
 	BucketResultChan		chan []Contact
 	VDOchan					chan VDOpair
+	getVDOchan				chan getVDO
 }
 
 type Router struct {
@@ -58,6 +59,11 @@ type VDOpair struct {
 	VDO 		VanashingDataObject
 }
 
+type getVDO struct {
+	Key 				ID
+	VDOresultchan 		chan VanashingDataObject
+}
+
 type ByDist []ContactDistance
 func (d ByDist) Len() int		{ return len(d) }
 func (d ByDist) Swap(i, j int)		{ d[i], d[j] = d[j], d[i] }
@@ -77,6 +83,7 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.RoutingTable.Buckets = make([][]Contact, B)
 	k.VDOHashTable = make(map[ID] VanashingDataObject)
 	k.VDOchan = make(chan VDOpair)
+	k.getVDOchan = make(chan getVDO)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -176,6 +183,10 @@ func handleRequest(k *Kademlia) {
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
 		case vdostore := <- k.VDOchan:
 			k.VDOHashTable[vdostore.Key] = vdostore.VDO
+		case getkey := <- k.getVDOchan:
+			getvdo := k.VDOHashTable[getkey.Key] 
+			getkey.VDOresultchan <- getvdo
+
 		}
 	}
 }
@@ -673,5 +684,43 @@ func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 }
 
 func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
-	return nil
+	if nodeID == k.NodeID {
+		VDOrequest := getVDO {vdoID, make(chan VanashingDataObject)}
+		k.getVDOchan <- VDOrequest
+		vdo := <- VDOrequest.VDOresultchan
+		data = k.UnvanishData(vdo)
+		return data
+	} else {
+		req := new(GetVDORequest)
+		contacts,_ := k.DoIterativeFindNode(nodeID)
+		for _,c := range contacts {
+			if c.NodeID == nodeID {
+				req.Sender = c
+				break
+			}
+		}
+		if req.Sender.NodeID != nodeID {
+			return nil
+		}
+		var res GetVDOResult
+		req.MsgID = NewRandomID()
+		req.VdoID = vdoID
+		port_str := strconv.Itoa(int(k.SelfContact.Port))
+		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(k.SelfContact.Host, k.SelfContact.Port), rpc.DefaultRPCPath+port_str)
+		if err != nil {
+			log.Fatal("DialHTTP: ", err)
+		}
+
+		err = client.Call("KademliaRPC.GetVDO", req, &res)
+		if err != nil {
+			log.Fatal("Call: ", err)
+			return nil
+		}
+		data = k.UnvanishData(res.VDO)
+		if data != nil{
+			return data
+		} else {
+			return nil
+		}
+	}
 }
