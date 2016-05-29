@@ -27,11 +27,13 @@ type Kademlia struct {
 	SelfContact			Contact
 	RoutingTable		*Router
 	HashTable			map[ID][]byte
+	VDOHashTable		map[ID] VanashingDataObject
 	ContactChan			chan *Contact
 	KeyValueChan			chan *KeyValueSet
 	KVSearchChan			chan *KeyValueSet
 	BucketsIndexChan		chan int
 	BucketResultChan		chan []Contact
+	VDOchan					chan VDOpair
 }
 
 type Router struct {
@@ -51,6 +53,11 @@ type ContactDistance struct {
 	distance			int
 }
 
+type VDOpair struct {
+	Key 		ID
+	VDO 		VanashingDataObject
+}
+
 type ByDist []ContactDistance
 func (d ByDist) Len() int		{ return len(d) }
 func (d ByDist) Swap(i, j int)		{ d[i], d[j] = d[j], d[i] }
@@ -68,6 +75,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.BucketResultChan = make(chan []Contact)
 	k.RoutingTable = new(Router)
 	k.RoutingTable.Buckets = make([][]Contact, B)
+	k.VDOHashTable = make(map[ID] VanashingDataObject)
+	k.VDOchan = make(chan VDOpair)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -139,6 +148,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 		*bucket = append((*bucket)[:contactIndex], (*bucket)[(contactIndex+1):]...)
 	 	*bucket = append(*bucket, tmpContact)
 	}
+	fmt.Println("bucket update finished")
 }
 
 func handleRequest(k *Kademlia) {
@@ -164,6 +174,8 @@ func handleRequest(k *Kademlia) {
 			}
 		case bucketIndex := <- k.BucketsIndexChan:
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
+		case vdostore := <- k.VDOchan:
+			k.VDOHashTable[vdostore.Key] = vdostore.VDO
 		}
 	}
 }
@@ -652,13 +664,14 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 }
 
 // For project 3!
-func (k *Kademlia) Vanish(data []byte, numberKeys byte,
+func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	vdo = k.VanishData(data, numberKeys, threshold, timeoutSeconds)
-
+	VDOstore := VDOpair {vdoID, vdo}
+	k.VDOchan <- VDOstore
 	return vdo
 }
 
-func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
+func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
 	return nil
 }
