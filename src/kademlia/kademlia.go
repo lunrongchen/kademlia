@@ -72,7 +72,8 @@ func main() {
 	}
 	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
 	log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
-	kadem.UpdateRoutingTable(&(pong.Sender))
+	// kadem.UpdateRoutingTable(&(pong.Sender))
+	kadem.ContactChan <- &(pong.Sender)
 	
 	in := bufio.NewReader(os.Stdin)
 	quit := false
