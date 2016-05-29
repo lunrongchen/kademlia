@@ -19,3 +19,28 @@ Some  change on test and limit time:
 When we did the normal test mode-> “go test libkademlia”,  all test case could be finish and return ok message, however, if we run in race test mode  -> “go test -race libkademlia”, the timeout error would be happened and return wrong message, the reason we think is that golang need more time to check thread safe , so some roc call would out of 300m second and return error. In order to make sure all test case both pass in normal mode and race mode, we changed the limits time in the const variable.  After this change, all test case return ok message in both normal and race mode.
 Any question about this edit, please be free to contact Benjamin 
 (lct595, lunrongchen@acm.org).
+
+
+
+
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7890 127.0.0.1:7890
+
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7894 127.0.0.1:7890
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7893 127.0.0.1:7890
+
+cd Github/kademlia/
+export GOPATH=`pwd`
+go install kademlia
+go run -race src/kademlia/kademlia.go 127.0.0.1:7892 127.0.0.1:7890
