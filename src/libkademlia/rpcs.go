@@ -145,6 +145,12 @@ type GetVDOResult struct {
 }
 
 func (k *KademliaRPC) GetVDO(req GetVDORequest, res *GetVDOResult) error {
-	// TODO: Implement.
+	// TODO: Implement.s
+	res.MsgID = req.MsgID
+    VDOrequest := getVDO {req.VdoID, make(chan VanashingDataObject)}
+	k.kademlia.getVDOchan <- VDOrequest
+	vdo := <- VDOrequest.VDOresultchan
+	// get vdo from vdostore vdo := vdoStroe(req.VdoID)
+	res.VDO = vdo
 	return nil
 }

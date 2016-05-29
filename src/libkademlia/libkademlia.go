@@ -25,13 +25,16 @@ const (
 type Kademlia struct {
 	NodeID				ID
 	SelfContact			Contact
-	RoutingTable			*Router
+	RoutingTable		*Router
 	HashTable			map[ID][]byte
+	VDOHashTable		map[ID] VanashingDataObject
 	ContactChan			chan *Contact
 	KeyValueChan			chan *KeyValueSet
 	KVSearchChan			chan *KeyValueSet
 	BucketsIndexChan		chan int
 	BucketResultChan		chan []Contact
+	VDOchan					chan VDOpair
+	getVDOchan				chan getVDO
 }
 
 type Router struct {
@@ -51,6 +54,16 @@ type ContactDistance struct {
 	distance			int
 }
 
+type VDOpair struct {
+	Key 		ID
+	VDO 		VanashingDataObject
+}
+
+type getVDO struct {
+	Key 				ID
+	VDOresultchan 		chan VanashingDataObject
+}
+
 type ByDist []ContactDistance
 func (d ByDist) Len() int		{ return len(d) }
 func (d ByDist) Swap(i, j int)		{ d[i], d[j] = d[j], d[i] }
@@ -68,6 +81,9 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.BucketResultChan = make(chan []Contact)
 	k.RoutingTable = new(Router)
 	k.RoutingTable.Buckets = make([][]Contact, B)
+	k.VDOHashTable = make(map[ID] VanashingDataObject)
+	k.VDOchan = make(chan VDOpair)
+	k.getVDOchan = make(chan getVDO)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -105,15 +121,16 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 }
 
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
-	fmt.Println("update started")
+	// fmt.Println("update started")
 	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
 	if prefixLength == B {
 		return
 	}
 	var tmpContact Contact
 	found := false
-	contactIndex := 0
+	contactIndex := 0; 
 	bucket := &k.RoutingTable.Buckets[prefixLength]
+	
 	for x, value := range *bucket {
 		if value.NodeID.Equals(contact.NodeID){
 			tmpContact = value
@@ -122,6 +139,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 			break
 		}
 	}
+	// fmt.Println("update finished")
 	if found == false {
 		if len(*bucket) <= K {
 			*bucket = append(*bucket, *contact)
@@ -137,15 +155,15 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 		*bucket = append((*bucket)[:contactIndex], (*bucket)[(contactIndex+1):]...)
 	 	*bucket = append(*bucket, tmpContact)
 	}
+	fmt.Println("bucket update finished")
 }
 
 func handleRequest(k *Kademlia) {
 	for {
 		select {
 		case contact := <- k.ContactChan: 
-			fmt.Println("Get from Contact channel started ")
+			// fmt.Println("get from Contact channel : " + contact.NodeID.AsString())
 			k.UpdateRoutingTable(contact)
-			fmt.Println("Get from Contact channel finished ")
 		case kvset := <- k.KeyValueChan:
 			// fmt.Println("get from KeValue channel : " + string(kvset.Value))
 			k.HashTable[kvset.Key] = kvset.Value
@@ -163,6 +181,12 @@ func handleRequest(k *Kademlia) {
 			}
 		case bucketIndex := <- k.BucketsIndexChan:
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
+		case vdostore := <- k.VDOchan:
+			k.VDOHashTable[vdostore.Key] = vdostore.VDO
+		case getkey := <- k.getVDOchan:
+			getvdo := k.VDOHashTable[getkey.Key] 
+			getkey.VDOresultchan <- getvdo
+
 		}
 	}
 }
@@ -651,11 +675,52 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 }
 
 // For project 3!
-func (k *Kademlia) Vanish(data []byte, numberKeys byte,
+func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
-	return
+	vdo = k.VanishData(data, numberKeys, threshold, timeoutSeconds)
+	VDOstore := VDOpair {vdoID, vdo}
+	k.VDOchan <- VDOstore
+	return vdo
 }
 
-func (k *Kademlia) Unvanish(searchKey ID) (data []byte) {
-	return nil
+func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
+	if nodeID == k.NodeID {
+		VDOrequest := getVDO {vdoID, make(chan VanashingDataObject)}
+		k.getVDOchan <- VDOrequest
+		vdo := <- VDOrequest.VDOresultchan
+		data = k.UnvanishData(vdo)
+		return data
+	} else {
+		req := new(GetVDORequest)
+		contacts,_ := k.DoIterativeFindNode(nodeID)
+		for _,c := range contacts {
+			if c.NodeID == nodeID {
+				req.Sender = c
+				break
+			}
+		}
+		if req.Sender.NodeID != nodeID {
+			return nil
+		}
+		var res GetVDOResult
+		req.MsgID = NewRandomID()
+		req.VdoID = vdoID
+		port_str := strconv.Itoa(int(k.SelfContact.Port))
+		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(k.SelfContact.Host, k.SelfContact.Port), rpc.DefaultRPCPath+port_str)
+		if err != nil {
+			log.Fatal("DialHTTP: ", err)
+		}
+
+		err = client.Call("KademliaRPC.GetVDO", req, &res)
+		if err != nil {
+			log.Fatal("Call: ", err)
+			return nil
+		}
+		data = k.UnvanishData(res.VDO)
+		if data != nil{
+			return data
+		} else {
+			return nil
+		}
+	}
 }
