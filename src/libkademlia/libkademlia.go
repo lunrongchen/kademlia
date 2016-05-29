@@ -105,17 +105,15 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 }
 
 func (k *Kademlia) UpdateRoutingTable(contact *Contact){
-	// fmt.Println("update started")
+	fmt.Println("update started")
 	prefixLength := contact.NodeID.Xor(k.NodeID).PrefixLen();
 	if prefixLength == B {
 		return
 	}
 	var tmpContact Contact
 	found := false
-	contactIndex := 0; 
-	fmt.Println("bucket get started")
+	contactIndex := 0
 	bucket := &k.RoutingTable.Buckets[prefixLength]
-	fmt.Println("bucket traverse started")
 	for x, value := range *bucket {
 		if value.NodeID.Equals(contact.NodeID){
 			tmpContact = value
@@ -124,8 +122,6 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 			break
 		}
 	}
-	fmt.Println("bucket traverse finished")
-	fmt.Println("bucket update started")
 	if found == false {
 		if len(*bucket) <= K {
 			*bucket = append(*bucket, *contact)
@@ -141,15 +137,15 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 		*bucket = append((*bucket)[:contactIndex], (*bucket)[(contactIndex+1):]...)
 	 	*bucket = append(*bucket, tmpContact)
 	}
-	fmt.Println("bucket update finished")
 }
 
 func handleRequest(k *Kademlia) {
 	for {
 		select {
 		case contact := <- k.ContactChan: 
-			// fmt.Println("get from Contact channel : " + contact.NodeID.AsString())
+			fmt.Println("Get from Contact channel started ")
 			k.UpdateRoutingTable(contact)
+			fmt.Println("Get from Contact channel finished ")
 		case kvset := <- k.KeyValueChan:
 			// fmt.Println("get from KeValue channel : " + string(kvset.Value))
 			k.HashTable[kvset.Key] = kvset.Value
