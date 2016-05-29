@@ -113,8 +113,9 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 	var tmpContact Contact
 	found := false
 	contactIndex := 0; 
+	fmt.Println("bucket get started")
 	bucket := &k.RoutingTable.Buckets[prefixLength]
-	
+	fmt.Println("bucket traverse started")
 	for x, value := range *bucket {
 		if value.NodeID.Equals(contact.NodeID){
 			tmpContact = value
@@ -123,7 +124,8 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 			break
 		}
 	}
-	// fmt.Println("update finished")
+	fmt.Println("bucket traverse finished")
+	fmt.Println("bucket update started")
 	if found == false {
 		if len(*bucket) <= K {
 			*bucket = append(*bucket, *contact)
@@ -139,6 +141,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 		*bucket = append((*bucket)[:contactIndex], (*bucket)[(contactIndex+1):]...)
 	 	*bucket = append(*bucket, tmpContact)
 	}
+	fmt.Println("bucket update finished")
 }
 
 func handleRequest(k *Kademlia) {
