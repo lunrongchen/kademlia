@@ -376,7 +376,10 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			response = "ERR: Could not get threshold: " + toks[4]
 			return
 		}
-		response = k.Vanish(vdoID, data, byte(numberKeys), byte(threshold))
+		vdo := k.Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
+		if vdo.Ciphertext != nil {
+			response = "ERR: Could not vanish vdo"
+		}
 
 //  unvanish [Node ID] [VDO ID]
 	case toks[0] == "unvanish":
@@ -389,7 +392,7 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			response = "ERR: Provided an invalid nodeID (" + toks[1] + ")"
 			return
 		}
-		contact, err := k.FindContact(nodeID)
+		_, err = k.FindContact(nodeID)
 		if err != nil {
 			response = "ERR: Unable to find contact(" + toks[1] + ")"
 			return
@@ -399,7 +402,10 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			response = "ERR: Could not get VDO ID"
 			return
 		}
-		response = k.Unvanish(nodeID, vdoID)
+		data := k.Unvanish(nodeID, vdoID)
+		if data != nil {
+			response = "ERR: Could not unvanish vdo"
+		}
 
 	default:
 		response = "ERR: Unknown command"
