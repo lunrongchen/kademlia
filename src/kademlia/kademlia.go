@@ -359,13 +359,14 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold]"
 			return
 		}
-		vdoID, err := kademlia.IDFromString(toks[1])
+		vdoID, err := libkademlia.IDFromString(toks[1])
 		if err != nil {
 			response = "ERR: Provided an invalid vdoID (" + toks[1] + ")"
 			return
 		}
 		data := []byte(toks[2])
 		numberKeys, err := strconv.Atoi(toks[3])
+		// numberKeys, err := []byte(toks[3])
 		if err != nil {
 			response = "ERR: Could not get numberKeys: " + toks[3]
 			return
@@ -375,15 +376,15 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			response = "ERR: Could not get threshold: " + toks[4]
 			return
 		}
-		response = k.Vanish(vdoID, data, numberKeys, threshold, timeout)
+		response = k.Vanish(vdoID, data, byte(numberKeys), byte(threshold))
 
-////  unvanish [Node ID] [VDO ID]
-		case toks[0] == "unvanish":
+//  unvanish [Node ID] [VDO ID]
+	case toks[0] == "unvanish":
 		if len(toks) != 2 {
 			response = "usage: unvanish [Node ID] [VDO ID]"
 			return
 		}
-		nodeID, err := kademlia.IDFromString(toks[1])
+		nodeID, err := libkademlia.IDFromString(toks[1])
 		if err != nil {
 			response = "ERR: Provided an invalid nodeID (" + toks[1] + ")"
 			return
@@ -393,13 +394,13 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			response = "ERR: Unable to find contact(" + toks[1] + ")"
 			return
 		}
-		vdoID, err := kademlia.IDFromString(toks[2])
+		vdoID, err := libkademlia.IDFromString(toks[2])
 		if err != nil {
 			response = "ERR: Could not get VDO ID"
 			return
 		}
-		response = k.Unvanish(contact, vdoID)
-		
+		response = k.Unvanish(nodeID, vdoID)
+
 	default:
 		response = "ERR: Unknown command"
 	}
