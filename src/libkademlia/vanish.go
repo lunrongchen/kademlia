@@ -77,7 +77,10 @@ func (k *Kademlia) VanishData(data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	K := GenerateRandomCryptoKey()
 	ciphertext := encrypt(K, data)
-	vanishmap,_ := sss.Split(numberKeys, threshold, ciphertext)
+	vanishmap,err := sss.Split(numberKeys, threshold, ciphertext)
+	if err != nil {
+		return
+	}
 	L := GenerateRandomAccessKey()
 	ids := CalculateSharedKeyLocations(L, int64(numberKeys))
 	i := 0

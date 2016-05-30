@@ -656,7 +656,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	result := k.IterativeFindNode(key, false)
 	for _, c := range result.contacts {
-		go k.DoStore(&c, key, value)
+		 k.DoStore(&c, key, value)
 	}
 	return result.contacts, nil
 }
