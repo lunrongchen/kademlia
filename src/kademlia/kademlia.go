@@ -72,8 +72,8 @@ func main() {
 	}
 	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
 	log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
-	kadem.UpdateRoutingTable(&(pong.Sender))
-	
+	// kadem.UpdateRoutingTable(&(pong.Sender))
+	kadem.ContactChan <- &(pong.Sender)
 	in := bufio.NewReader(os.Stdin)
 	quit := false
 	for !quit {
@@ -379,7 +379,9 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 		vdo := k.Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
 		if vdo.Ciphertext == nil {
 			response = "ERR: Could not vanish vdo"
-		} 
+		} else {
+			response = fmt.Sprintf("OK: vanish success")
+		}
 
 //  unvanish [Node ID] [VDO ID]
 	case toks[0] == "unvanish":
@@ -405,6 +407,8 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 		data := k.Unvanish(nodeID, vdoID)
 		if data == nil {
 			response = "ERR: Could not unvanish vdo"
+		} else {
+			response = fmt.Sprintf("OK: unvanish success")
 		}
 
 	default:
