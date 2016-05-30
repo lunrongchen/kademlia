@@ -377,9 +377,9 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			return
 		}
 		vdo := k.Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
-		if vdo.Ciphertext != nil {
+		if vdo.Ciphertext == nil {
 			response = "ERR: Could not vanish vdo"
-		}
+		} 
 
 //  unvanish [Node ID] [VDO ID]
 	case toks[0] == "unvanish":
@@ -403,7 +403,7 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 			return
 		}
 		data := k.Unvanish(nodeID, vdoID)
-		if data != nil {
+		if data == nil {
 			response = "ERR: Could not unvanish vdo"
 		}
 
