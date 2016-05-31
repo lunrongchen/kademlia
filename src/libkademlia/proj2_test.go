@@ -373,3 +373,56 @@ func TestIterativeStore(t *testing.T) {
 		}
 	}
 }
+
+func TestVanish(t *testing.T) {
+	instance := make([]*Kademlia,30)
+	host := make([]net.IP, 30)
+	port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:"+strconv.Itoa(7200+i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+
+	vdoID := NewRandomID()
+	data := []byte("Hello world")
+	numberKeys := 4
+	threshold := 3
+	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
+	if vdo.Ciphertext == nil {
+		t.Error("Could not vanish vdo")
+	}
+}
+
+func TestUnvanish(t *testing.T) {
+	instance := make([]*Kademlia,30)
+	host := make([]net.IP, 30)
+	port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:"+strconv.Itoa(7100+i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+
+	vdoID := NewRandomID()
+	data := []byte("Hello world")
+	numberKeys := 4
+	threshold := 3
+	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
+	if vdo.Ciphertext == nil {
+		t.Error("Could not vanish vdo")
+	}
+	dataRecovered := instance[0].Unvanish(instance[10].NodeID, vdoID)
+	if dataRecovered == nil {
+		t.Error("Could not unvanish vdo")
+	}
+	if !bytes.Equal(dataRecovered, data)  {
+		t.Error("Could not unvanish correct data")
+	}
+}
