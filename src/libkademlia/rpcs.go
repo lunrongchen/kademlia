@@ -118,7 +118,7 @@ type FindValueResult struct {
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
-	
+
 	_, found, Value := k.kademlia.BoolLocalFindValue(req.Key)
 	// fmt.Println(string(Value) + "******\n")
 	if found == true {
@@ -147,7 +147,7 @@ type GetVDOResult struct {
 func (k *KademliaRPC) GetVDO(req GetVDORequest, res *GetVDOResult) error {
 	// TODO: Implement.s
 	res.MsgID = req.MsgID
-    VDOrequest := getVDO {req.VdoID, make(chan VanashingDataObject)}
+  VDOrequest := getVDO {req.VdoID, make(chan VanashingDataObject)}
 	k.kademlia.getVDOchan <- VDOrequest
 	vdo := <- VDOrequest.VDOresultchan
 	// get vdo from vdostore vdo := vdoStroe(req.VdoID)

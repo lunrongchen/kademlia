@@ -70,8 +70,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Call: ", err)
 	}
-	log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
-	log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
+	// log.Printf("ping msgID: %s\n", ping.MsgID.AsString())
+	// log.Printf("pong msgID: %s\n\n", pong.MsgID.AsString())
 	// kadem.UpdateRoutingTable(&(pong.Sender))
 	kadem.ContactChan <- &(pong.Sender)
 	in := bufio.NewReader(os.Stdin)
