@@ -259,7 +259,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
 	k.ContactChan <- &(&pong).Sender
 	defer client.Close()
-	return nil, nil
+	return &(&pong).Sender, nil
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
