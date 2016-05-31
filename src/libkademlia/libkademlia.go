@@ -155,7 +155,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 		*bucket = append((*bucket)[:contactIndex], (*bucket)[(contactIndex+1):]...)
 	 	*bucket = append(*bucket, tmpContact)
 	}
-	fmt.Println("bucket update finished")
+	// fmt.Println("bucket update finished")
 }
 
 func handleRequest(k *Kademlia) {
@@ -415,14 +415,18 @@ type shortlistUpdate struct {
 	AppendItem			ContactDistance
 }
 
+// func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
+// 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
+// 	closestnode Contact, valueSearchChan chan bool, valueResultChan chan bool) bool{
+// 	valueSearchChan <- true
+// 	valueSearchResult := <- valueResultChan
+// 	if valueSearchResult == true {
+// 		return true
+// 	}
 func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
-	closestnode Contact, valueSearchChan chan bool, valueResultChan chan bool) bool{
-	valueSearchChan <- true
-	valueSearchResult := <- valueResultChan
-	if valueSearchResult == true {
-		return true
-	}
+	closestnode Contact) bool{
+
 	shortlistContentsTmp := make([]ContactDistance, 0)
 	shortlistGetLenChan <- true
 	shortlistLen := <-shortlistResLenChan
@@ -437,7 +441,7 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shor
 		if activeMapResultBool == false {
 			return false
 		}
-		fmt.Println(i)
+		// fmt.Println(i)
 	}
 	return true
 }
@@ -584,7 +588,8 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	for !completed(shortlistGetLenChan, shortlistResLenChan, 
 		           shortlistGetContensChan, shortlistResContensChan, 
 		           activeMapSearchChan, activeMapResultChan, 
-		           closestNode, valueSearchChan, valueResultChan) {
+		           closestNode) {
+		           // closestNode, valueSearchChan, valueResultChan) {
 		shortlistContents := make([]ContactDistance, 0)
 		shortlistGetLenChan <- true
 		shortlistLen := <-shortlistResLenChan
