@@ -412,8 +412,8 @@ func TestUnvanish(t *testing.T) {
 
 	vdoID := NewRandomID()
 	data := []byte("Hello world")
-	numberKeys := 4
-	threshold := 3
+	numberKeys := 2
+	threshold := 2
 	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
 	if vdo.Ciphertext == nil {
 		t.Error("Could not vanish vdo")
