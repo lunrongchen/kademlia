@@ -7,6 +7,7 @@ package libkademlia
 import (
 	"net"
 	"fmt"
+	"strconv"
 )
 
 type KademliaRPC struct {
@@ -64,7 +65,7 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	res.MsgID = CopyID(req.MsgID)
 	//get the key-value set from request
     newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool),make(chan []byte)}
-    fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
+    fmt.Println("Store : " + req.Key.AsString())
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
 	// update bucket contact list
@@ -148,8 +149,9 @@ func (k *KademliaRPC) GetVDO(req GetVDORequest, res *GetVDOResult) error {
 	// TODO: Implement.s
 	res.MsgID = req.MsgID
     VDOrequest := getVDO {req.VdoID, make(chan VanashingDataObject)}
-	k.kademlia.getVDOchan <- VDOrequest
+	k.kademlia.getVDOchan <- &VDOrequest
 	vdo := <- VDOrequest.VDOresultchan
+	fmt.Println("get vdo : " + strconv.Itoa(int(vdo.NumberKeys)))
 	// get vdo from vdostore vdo := vdoStroe(req.VdoID)
 	res.VDO = vdo
 	return nil

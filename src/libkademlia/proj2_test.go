@@ -1,12 +1,12 @@
 package libkademlia
 
 import (
-	// "bytes"
+	//"bytes"
 	"net"
 	"strconv"
 	"testing"
-	// "fmt"
-	// "sort"
+    //"fmt"
+	//"sort"
 	// "time"
 )
 
@@ -30,49 +30,49 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 	return
 }
 
-func TestPing(t *testing.T) {
-	instance1 := NewKademlia("localhost:7890")
-	instance2 := NewKademlia("localhost:7891")
-	host2, port2, _ := StringToIpPort("localhost:7891")
-	contact2, err := instance2.FindContact(instance2.NodeID)
-	if err != nil {
-		t.Error("A node cannot find itself's contact info")
-	}
-	contact2, err = instance2.FindContact(instance1.NodeID)
-	if err == nil {
-		t.Error("Instance 2 should not be able to find instance " +
-			"1 in its buckets before ping instance 1")
-	}
-	instance1.DoPing(host2, port2)
-	contact2, err = instance2.FindContact(instance1.NodeID)
-	if err != nil {
-		t.Error("Instance 2 should be able to find instance" +
-			"1 in its buckets before ping instance 1")
-	}
-	contact2, err = instance1.FindContact(instance2.NodeID)
-	if err != nil {
-		t.Error("Instance 2's contact not found in Instance 1's contact list")
-		return
-	}
-	wrong_ID := NewRandomID()
-	_, err = instance2.FindContact(wrong_ID)
-	if err == nil {
-		t.Error("Instance 2 should not be able to find a node with the wrong ID")
-	}
+// func TestPing(t *testing.T) {
+// 	instance1 := NewKademlia("localhost:7890")
+// 	instance2 := NewKademlia("localhost:7891")
+// 	host2, port2, _ := StringToIpPort("localhost:7891")
+// 	contact2, err := instance2.FindContact(instance2.NodeID)
+// 	if err != nil {
+// 		t.Error("A node cannot find itself's contact info")
+// 	}
+// 	contact2, err = instance2.FindContact(instance1.NodeID)
+// 	if err == nil {
+// 		t.Error("Instance 2 should not be able to find instance " +
+// 			"1 in its buckets before ping instance 1")
+// 	}
+// 	instance1.DoPing(host2, port2)
+// 	contact2, err = instance2.FindContact(instance1.NodeID)
+// 	if err != nil {
+// 		t.Error("Instance 2 should be able to find instance" +
+// 			"1 in its buckets before ping instance 1")
+// 	}
+// 	contact2, err = instance1.FindContact(instance2.NodeID)
+// 	if err != nil {
+// 		t.Error("Instance 2's contact not found in Instance 1's contact list")
+// 		return
+// 	}
+// 	wrong_ID := NewRandomID()
+// 	_, err = instance2.FindContact(wrong_ID)
+// 	if err == nil {
+// 		t.Error("Instance 2 should not be able to find a node with the wrong ID")
+// 	}
 
-	contact1, err := instance2.FindContact(instance1.NodeID)
-	if err != nil {
-		t.Error("Instance 1's contact not found in Instance 2's contact list")
-		return
-	}
-	if contact1.NodeID != instance1.NodeID {
-		t.Error("Instance 1 ID incorrectly stored in Instance 2's contact list")
-	}
-	if contact2.NodeID != instance2.NodeID {
-		t.Error("Instance 2 ID incorrectly stored in Instance 1's contact list")
-	}
-	return
-}
+// 	contact1, err := instance2.FindContact(instance1.NodeID)
+// 	if err != nil {
+// 		t.Error("Instance 1's contact not found in Instance 2's contact list")
+// 		return
+// 	}
+// 	if contact1.NodeID != instance1.NodeID {
+// 		t.Error("Instance 1 ID incorrectly stored in Instance 2's contact list")
+// 	}
+// 	if contact2.NodeID != instance2.NodeID {
+// 		t.Error("Instance 2 ID incorrectly stored in Instance 1's contact list")
+// 	}
+// 	return
+// }
 
 // func TestStore(t *testing.T) {
 // 	// test Dostore() function and LocalFindValue() function
@@ -374,35 +374,12 @@ func TestPing(t *testing.T) {
 // 	}
 // }
 
-func TestVanish(t *testing.T) {
-	instance := make([]*Kademlia,30)
-	host := make([]net.IP, 30)
-	port := make([]uint16, 30)
-	for i := 30; i < 60; i++ {
-		hostnumber := "localhost:"+strconv.Itoa(7200+i)
-		instance[i-30] = NewKademlia(hostnumber)
-		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
-	}
-	for k := 0; k < 29; k++ {
-		instance[k].DoPing(host[k+1], port[k+1])
-	}
-
-	vdoID := NewRandomID()
-	data := []byte("Hello world")
-	numberKeys := 4
-	threshold := 3
-	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
-	if vdo.Ciphertext == nil {
-		t.Error("Could not vanish vdo")
-	}
-}
-
-// func TestUnvanish(t *testing.T) {
+// func TestVanish(t *testing.T) {
 // 	instance := make([]*Kademlia,30)
 // 	host := make([]net.IP, 30)
 // 	port := make([]uint16, 30)
 // 	for i := 30; i < 60; i++ {
-// 		hostnumber := "localhost:"+strconv.Itoa(7100+i)
+// 		hostnumber := "localhost:"+strconv.Itoa(7200+i)
 // 		instance[i-30] = NewKademlia(hostnumber)
 // 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
 // 	}
@@ -418,7 +395,34 @@ func TestVanish(t *testing.T) {
 // 	if vdo.Ciphertext == nil {
 // 		t.Error("Could not vanish vdo")
 // 	}
-// 	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
-// 	_ = instance[0].Unvanish(instance[0].NodeID, vdoID)
-// 	return
 // }
+
+func TestUnvanish(t *testing.T) {
+	instance := make([]*Kademlia,30)
+	host := make([]net.IP, 30)
+	port := make([]uint16, 30)
+	for i := 30; i < 60; i++ {
+		hostnumber := "localhost:"+strconv.Itoa(7800+i)
+		instance[i-30] = NewKademlia(hostnumber)
+		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+	}
+	for k := 0; k < 29; k++ {
+		instance[k].DoPing(host[k+1], port[k+1])
+	}
+
+	vdoID := NewRandomID()
+	data := []byte("Hello world")
+	numberKeys := 4
+	threshold := 3
+	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
+	if vdo.Ciphertext == nil {
+		t.Error("Could not vanish vdo")
+	}
+	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
+     _ = instance[10].Unvanish(instance[0].NodeID, vdoID)
+	// if !bytes.Equal(newData, data) {
+	// 	t.Error("Unvanish wrong data")
+ // 	}
+
+	return
+}

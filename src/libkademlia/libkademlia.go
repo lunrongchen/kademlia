@@ -33,8 +33,8 @@ type Kademlia struct {
 	KVSearchChan			chan *KeyValueSet
 	BucketsIndexChan		chan int
 	BucketResultChan		chan []Contact
-	VDOchan					chan VDOpair
-	getVDOchan				chan getVDO
+	VDOchan					chan *VDOpair
+	getVDOchan				chan *getVDO
 }
 
 type Router struct {
@@ -82,8 +82,8 @@ func NewKademliaWithId(laddr string, nodeID ID) *Kademlia {
 	k.RoutingTable = new(Router)
 	k.RoutingTable.Buckets = make([][]Contact, B)
 	k.VDOHashTable = make(map[ID] VanashingDataObject)
-	k.VDOchan = make(chan VDOpair)
-	k.getVDOchan = make(chan getVDO)
+	k.VDOchan = make(chan * VDOpair)
+	k.getVDOchan = make(chan * getVDO)
 	// Set up RPC server
 	// NOTE: KademliaRPC is just a wrapper around Kademlia. This type includes
 	// the RPC functions.
@@ -182,9 +182,13 @@ func handleRequest(k *Kademlia) {
 		case bucketIndex := <- k.BucketsIndexChan:
 			k.BucketResultChan <- k.RoutingTable.Buckets[bucketIndex]
 		case vdostore := <- k.VDOchan:
-			k.VDOHashTable[vdostore.Key] = vdostore.VDO
+			store := vdostore.VDO
+			k.VDOHashTable[vdostore.Key] = store
+			fmt.Println("store vdo : " + vdostore.Key.AsString()+strconv.Itoa(int(k.VDOHashTable[vdostore.Key].NumberKeys)))
 		case getkey := <- k.getVDOchan:
 			getvdo := k.VDOHashTable[getkey.Key] 
+			fmt.Println("get stored vdo from channel : " +getkey.Key.AsString()+ strconv.Itoa(int(k.VDOHashTable[getkey.Key].NumberKeys)))
+			fmt.Println("get stored vdo from channel : " + strconv.Itoa(int(k.VDOHashTable[getkey.Key].AccessKey)))
 			getkey.VDOresultchan <- getvdo
 
 		}
@@ -315,6 +319,7 @@ func (k *Kademlia) DoFindValue(contact *Contact,
 	port_str := strconv.Itoa(int(contact.Port))
 	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 	if err != nil {
+		fmt.Println("HTTTTTTTTTTTTTTTP")
 		log.Fatal("DialHTTP: ", err)
 		return nil, nil, &CommandFailed{"Not implemented"}
 	}
@@ -670,6 +675,7 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	result := k.IterativeFindNode(key, false)
+	time.Sleep(100*time.Millisecond)
 	for _, c := range result.contacts {
 		 k.DoStore(&c, key, value)
 	}
@@ -680,8 +686,8 @@ func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	result := k.IterativeFindNode(key, true)
 	fmt.Println("result.key : " + result.key.AsString() + "\n" + "result.value : " + string(result.value) + "\n")
 	if result.value != nil {
-		str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
-		fmt.Println(str + "\n")
+		//str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
+		//fmt.Println(str + "\n")
 		return result.value, nil
 	} else {
 		fmt.Println("Find Value is nil\n")
@@ -694,7 +700,7 @@ func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	vdo = k.VanishData(data, numberKeys, threshold, timeoutSeconds)
 	VDOstore := VDOpair {vdoID, vdo}
-	k.VDOchan <- VDOstore
+	k.VDOchan <- &VDOstore
 	return vdo
 }
 // func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
@@ -702,13 +708,15 @@ func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 // 		return nil
 // }
 func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
-	if nodeID == k.NodeID {
+	if nodeID.Compare(k.NodeID) == 0 {
+		fmt.Println("enter if!!!!!!!!!!!!")
 		VDOrequest := getVDO {vdoID, make(chan VanashingDataObject)}
-		k.getVDOchan <- VDOrequest
+		k.getVDOchan <- &VDOrequest
 		vdo := <- VDOrequest.VDOresultchan
 		data = k.UnvanishData(vdo)
 		return data
 	} else {
+		fmt.Println("enter else!!!!!!!!!!!!")
 		req := new(GetVDORequest)
 		contacts,_ := k.DoIterativeFindNode(nodeID)
 		for _,c := range contacts {
@@ -717,14 +725,14 @@ func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
 				break
 			}
 		}
-		if req.Sender.NodeID != nodeID {
+		if nodeID.Compare(req.Sender.NodeID) != 0 {
 			return nil
 		}
 		var res GetVDOResult
 		req.MsgID = NewRandomID()
 		req.VdoID = vdoID
-		port_str := strconv.Itoa(int(k.SelfContact.Port))
-		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(k.SelfContact.Host, k.SelfContact.Port), rpc.DefaultRPCPath+port_str)
+		port_str := strconv.Itoa(int(req.Sender.Port))
+		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(req.Sender.Host, req.Sender.Port), rpc.DefaultRPCPath+port_str)
 		if err != nil {
 			log.Fatal("DialHTTP: ", err)
 		}
@@ -738,7 +746,7 @@ func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
 		if data != nil{
 			return data
 		} else {
-			return nil
+		 	return nil
 		}
 	}
 }

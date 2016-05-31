@@ -8,6 +8,8 @@ import (
 	mathrand "math/rand"
 	"time"
 	"sss"
+	"fmt"
+	"strconv"
 )
 
 type VanashingDataObject struct {
@@ -97,10 +99,12 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 	L := vdo.AccessKey
 	numberKeys := vdo.NumberKeys
 	ids := CalculateSharedKeyLocations(L, int64(numberKeys))
+	fmt.Println("!!!!!!!number of ids" + strconv.Itoa(len(ids)))
 	unvanishmap := make(map[byte] []byte)
 	for _,id := range ids {
-		value,_ := k.DoIterativeFindValue(id)
-		if value != nil{
+		fmt.Println("enter doiterativeValue")
+		value,err := k.DoIterativeFindValue(id)
+		if err == nil {
 			key := value[0]
 			v := value[1:]
 			unvanishmap[key] = v
