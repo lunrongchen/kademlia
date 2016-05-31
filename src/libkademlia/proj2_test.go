@@ -419,7 +419,7 @@ func TestUnvanish(t *testing.T) {
 		t.Error("Could not vanish vdo")
 	}
 	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
-	_ = instance[10].Unvanish(instance[0].NodeID, vdoID)
+	_ = instance[0].Unvanish(instance[0].NodeID, vdoID)
 	return
 	// fmt.Println("After Find")
 	// fmt.Println("result lenght:"+strconv.Itoa(len(contact)))
