@@ -104,9 +104,9 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 			key := value[0]
 			v := value[1:]
 			unvanishmap[key] = v
-			if len(unvanishmap) == int(vdo.Threshold) {
-				break
-			}
+		    if len(unvanishmap) == int(vdo.Threshold) {
+			 	break
+		    }
 		}
 	}
 	K := sss.Combine(unvanishmap)
