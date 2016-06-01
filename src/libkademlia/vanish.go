@@ -114,6 +114,9 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 		}
 	}
 	K := sss.Combine(unvanishmap)
+	fmt.Println("==========recovered key from unvanishmap:")
+	fmt.Println(K)
+	fmt.Println(len(K))
 	D := decrypt(K, vdo.Ciphertext)
 	return D
 }

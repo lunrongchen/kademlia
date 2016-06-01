@@ -402,7 +402,7 @@ func TestUnvanish(t *testing.T) {
 	host := make([]net.IP, 30)
 	port := make([]uint16, 30)
 	for i := 30; i < 60; i++ {
-		hostnumber := "localhost:"+strconv.Itoa(7800+i)
+		hostnumber := "localhost:"+strconv.Itoa(8500+i)
 		instance[i-30] = NewKademlia(hostnumber)
 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
 	}

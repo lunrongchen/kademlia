@@ -119,7 +119,7 @@ type FindValueResult struct {
 func (k *KademliaRPC) FindValue(req FindValueRequest, res *FindValueResult) error {
 	// TODO: Implement.
 	res.MsgID = CopyID(req.MsgID)
-	
+
 	_, found, Value := k.kademlia.BoolLocalFindValue(req.Key)
 	// fmt.Println(string(Value) + "******\n")
 	if found == true {
