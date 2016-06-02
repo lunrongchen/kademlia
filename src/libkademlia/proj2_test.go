@@ -419,6 +419,10 @@ func TestUnvanish(t *testing.T) {
 		t.Error("Could not vanish vdo")
 	}
 	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
-	_ = instance[0].Unvanish(instance[0].NodeID, vdoID)
+	s := instance[0].Unvanish(instance[0].NodeID, vdoID)
+	if !bytes.Equal(data, s) {
+		t.Error("wrong data")
+	}
+
 	return
 }

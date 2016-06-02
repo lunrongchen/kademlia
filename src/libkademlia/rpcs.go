@@ -64,7 +64,7 @@ func (k *KademliaRPC) Store(req StoreRequest, res *StoreResult) error {
 	res.MsgID = CopyID(req.MsgID)
 	//get the key-value set from request
     newKeyValueSet := KeyValueSet{req.Key, req.Value, make(chan bool),make(chan []byte)}
-    fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
+    //fmt.Println("Store : " + req.Key.AsString()+string(req.Value))
     // update hashtable
 	k.kademlia.KeyValueChan <- &newKeyValueSet
 	// update bucket contact list

@@ -8,6 +8,8 @@ import (
 	mathrand "math/rand"
 	"time"
 	"sss"
+	"fmt"
+	"strconv"
 )
 
 type VanashingDataObject struct {
@@ -76,8 +78,12 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 func (k *Kademlia) VanishData(data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	K := GenerateRandomCryptoKey()
+	fmt.Println("radom key")
+	fmt.Println(K)
 	ciphertext := encrypt(K, data)
-	vanishmap,err := sss.Split(numberKeys, threshold, ciphertext)
+	// vanishmap,err := sss.Split(numberKeys, threshold, ciphertext)
+	vanishmap,err := sss.Split(numberKeys, threshold, K)
+
 	if err != nil {
 		return
 	}
@@ -86,6 +92,8 @@ func (k *Kademlia) VanishData(data []byte, numberKeys byte,
 	i := 0
 	for key,value :=  range vanishmap {
 		all := append([]byte{key}, value...)
+		fmt.Println("print stored vanish value")
+		fmt.Println(all)
 		k.DoIterativeStore(ids[i],all)
 		i = i + 1;
 	}
@@ -97,19 +105,25 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 	L := vdo.AccessKey
 	numberKeys := vdo.NumberKeys
 	ids := CalculateSharedKeyLocations(L, int64(numberKeys))
+	fmt.Println("!!!!!!!number of ids" + strconv.Itoa(len(ids)))
 	unvanishmap := make(map[byte] []byte)
 	for _,id := range ids {
-		value,_ := k.DoIterativeFindValue(id)
-		if value != nil{
+		value,err := k.DoIterativeFindValue(id)
+		fmt.Println(value)
+		if err == nil{
 			key := value[0]
 			v := value[1:]
 			unvanishmap[key] = v
+			// fmt.Println(unvanishmap[key])
 		    if len(unvanishmap) == int(vdo.Threshold) {
 			 	break
 		    }
 		}
 	}
 	K := sss.Combine(unvanishmap)
+	fmt.Println("retrived key")
+	fmt.Println(K)
+	// count := int32(K)
 	D := decrypt(K, vdo.Ciphertext)
 	return D
 }

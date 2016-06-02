@@ -688,9 +688,9 @@ func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	result := k.IterativeFindNode(key, true)
-	fmt.Println("result.key : " + result.key.AsString() + "\n" + "result.value : " + string(result.value) + "\n")
+	fmt.Println("result.key : " + result.key.AsString() + "\n"  +"\n")
 	if result.value != nil {
-		str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
+		str := "Key: " + result.key.AsString()  
 		fmt.Println(str + "\n")
 		return result.value, nil
 	} else {
