@@ -713,28 +713,31 @@ func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 // }
 func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
 	if nodeID.Compare(k.NodeID) == 0 {
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter if")
 		VDOrequest := getVDO {vdoID, make(chan VanashingDataObject)}
 		k.getVDOchan <- VDOrequest
 		vdo := <- VDOrequest.VDOresultchan
 		data = k.UnvanishData(vdo)
 		return data
 	} else {
-		req := new(GetVDORequest)
+		req := GetVDORequest{k.SelfContact, vdoID, NewRandomID()}
 		contacts,_ := k.DoIterativeFindNode(nodeID)
+		var contact Contact
 		for _,c := range contacts {
 			if c.NodeID.Compare(nodeID) == 0 {
-				req.Sender = c
+				contact = c
+				fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter11111111111")
 				break
 			}
 		}
-		if req.Sender.NodeID.Compare(nodeID) != 0 {
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter22222222222")
+		if contact.NodeID.Compare(nodeID) != 0 {
+			fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter333333333333")
 			return nil
 		}
 		var res GetVDOResult
-		req.MsgID = NewRandomID()
-		req.VdoID = vdoID
-		port_str := strconv.Itoa(int(req.Sender.Port))
-		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(req.Sender.Host, req.Sender.Port), rpc.DefaultRPCPath+port_str)
+		port_str := strconv.Itoa(int(contact.Port))
+		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 		if err != nil {
 			log.Fatal("DialHTTP: ", err)
 		}

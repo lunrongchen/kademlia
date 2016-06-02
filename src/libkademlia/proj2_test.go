@@ -397,35 +397,7 @@ func TestVanish(t *testing.T) {
 	}
 }
 
-// func TestUnvanish(t *testing.T) {
-// 	instance := make([]*Kademlia,30)
-// 	host := make([]net.IP, 30)
-// 	port := make([]uint16, 30)
-// 	for i := 30; i < 60; i++ {
-// 		hostnumber := "localhost:"+strconv.Itoa(7100+i)
-// 		instance[i-30] = NewKademlia(hostnumber)
-// 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
-// 	}
-// 	for k := 0; k < 29; k++ {
-// 		instance[k].DoPing(host[k+1], port[k+1])
-// 	}
 
-// 	vdoID := NewRandomID()
-// 	data := []byte("Hello world")
-// 	numberKeys := 4
-// 	threshold := 3
-// 	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
-// 	if vdo.Ciphertext == nil {
-// 		t.Error("Could not vanish vdo")
-// 	}
-// 	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
-// 	s := instance[0].Unvanish(instance[0].NodeID, vdoID)
-// 	if !bytes.Equal(data, s) {
-// 		t.Error("wrong data")
-// 	}
-
-// 	return
-// }
 func TestUnvanish2(t *testing.T) {
 	instance := make([]*Kademlia,30)
 	host := make([]net.IP, 30)
@@ -443,15 +415,18 @@ func TestUnvanish2(t *testing.T) {
 	data := []byte("Hello world")
 	numberKeys := 4
 	threshold := 3
-	vdo := instance[10].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
+	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
 	if vdo.Ciphertext == nil {
 		t.Error("Could not vanish vdo")
 	}
 	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
-	s := instance[0].Unvanish(instance[0].NodeID, vdoID)
+	s := instance[10].Unvanish(instance[0].NodeID, vdoID)
 	if !bytes.Equal(data, s) {
 		t.Error("wrong data")
 	}
-
+	ss := instance[0].Unvanish(instance[0].NodeID, vdoID)
+    	if !bytes.Equal(data, ss) {
+		t.Error("wrong data")
+	}
 	return
 }
