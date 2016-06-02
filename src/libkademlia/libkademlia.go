@@ -722,19 +722,19 @@ func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
 		req := new(GetVDORequest)
 		contacts,_ := k.DoIterativeFindNode(nodeID)
 		for _,c := range contacts {
-			if c.NodeID == nodeID {
+			if c.NodeID.Compare(nodeID) == 0 {
 				req.Sender = c
 				break
 			}
 		}
-		if req.Sender.NodeID != nodeID {
+		if req.Sender.NodeID.Compare(nodeID) != 0 {
 			return nil
 		}
 		var res GetVDOResult
 		req.MsgID = NewRandomID()
 		req.VdoID = vdoID
-		port_str := strconv.Itoa(int(k.SelfContact.Port))
-		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(k.SelfContact.Host, k.SelfContact.Port), rpc.DefaultRPCPath+port_str)
+		port_str := strconv.Itoa(int(req.Sender.Port))
+		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(req.Sender.Host, req.Sender.Port), rpc.DefaultRPCPath+port_str)
 		if err != nil {
 			log.Fatal("DialHTTP: ", err)
 		}
