@@ -415,18 +415,25 @@ type shortlistUpdate struct {
 	AppendItem			ContactDistance
 }
 
-// func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
-// 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
-// 	closestnode Contact, valueSearchChan chan bool, valueResultChan chan bool) bool{
-// 	valueSearchChan <- true
-// 	valueSearchResult := <- valueResultChan
-// 	if valueSearchResult == true {
-// 		return true
-// 	}
 func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
-	closestnode Contact) bool{
+	closestnode Contact, valueSearchChan chan bool, valueResultChan chan bool) bool{
+	valueSearchChan <- true
+	valueSearchResult := <- valueResultChan
+	if valueSearchResult == true {
+		return true
+	}
 
+// func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
+// 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
+// 	closestnode Contact) bool{
+
+// func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
+// 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
+// 	closestnode Contact, found_value []byte) bool{
+// 	if found_value != nil {
+// 		return true
+// 	}
 	shortlistContentsTmp := make([]ContactDistance, 0)
 	shortlistGetLenChan <- true
 	shortlistLen := <-shortlistResLenChan
@@ -574,8 +581,10 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 				}
 			case valueSearchTmp := <- valueSearchChan:
 				if valueSearchTmp == true {
-					if valueSearchTmp == true {
+					if result.value != nil {
 						valueResultChan <- true						
+					} else {
+						valueResultChan <- false
 					}
 				} 
 			}
@@ -587,8 +596,9 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	for !completed(shortlistGetLenChan, shortlistResLenChan, 
 		           shortlistGetContensChan, shortlistResContensChan, 
 		           activeMapSearchChan, activeMapResultChan, 
-		           closestNode) {
-		           // closestNode, valueSearchChan, valueResultChan) {
+		           // closestNode) {
+		           closestNode, valueSearchChan, valueResultChan) {
+				   // closestNode, result.value) {
 		shortlistContents := make([]ContactDistance, 0)
 		shortlistGetLenChan <- true
 		shortlistLen := <-shortlistResLenChan
