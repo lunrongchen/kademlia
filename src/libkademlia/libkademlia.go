@@ -311,17 +311,16 @@ func (k *Kademlia) DoFindNode(contact *Contact, searchKey ID) ([]Contact, error)
 func (k *Kademlia) DoFindValue(contact *Contact,
 	searchKey ID) (value []byte, contacts []Contact, err error) {
 	// TODO: Implement
-	req := FindValueRequest{*contact, NewRandomID(), searchKey}
+	req := FindValueRequest{k.SelfContact, NewRandomID(), searchKey}
 	res := new(FindValueResult)
 
 	port_str := strconv.Itoa(int(contact.Port))
 	client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 	if err != nil {
-		fmt.Println("HTTTTTTTTTTTTTTTP")
+		fmt.Println("HTTTTTTTTTTTTTTTP!!!!")
 		log.Fatal("DialHTTP: ", err)
 		return nil, nil, &CommandFailed{"Not implemented"}
 	}
-	//defer client.Close()
 	err = client.Call("KademliaRPC.FindValue", req, &res)
 	if err != nil {
 		log.Fatal("Call: ", err)

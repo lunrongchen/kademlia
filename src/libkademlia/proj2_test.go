@@ -1,11 +1,11 @@
 package libkademlia
 
 import (
-	//"bytes"
+	"bytes"
 	"net"
 	"strconv"
 	"testing"
-    //"fmt"
+    "fmt"
 	//"sort"
 	// "time"
 )
@@ -397,32 +397,52 @@ func StringToIpPort(laddr string) (ip net.IP, port uint16, err error) {
 // 	}
 // }
 
-func TestUnvanish(t *testing.T) {
-	instance := make([]*Kademlia,30)
-	host := make([]net.IP, 30)
-	port := make([]uint16, 30)
-	for i := 30; i < 60; i++ {
-		hostnumber := "localhost:"+strconv.Itoa(8500+i)
-		instance[i-30] = NewKademlia(hostnumber)
-		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
-	}
-	for k := 0; k < 29; k++ {
-		instance[k].DoPing(host[k+1], port[k+1])
-	}
+// func TestUnvanish(t *testing.T) {
+// 	instance := make([]*Kademlia,30)
+// 	host := make([]net.IP, 30)
+// 	port := make([]uint16, 30)
+// 	for i := 30; i < 60; i++ {
+// 		hostnumber := "localhost:"+strconv.Itoa(8500+i)
+// 		instance[i-30] = NewKademlia(hostnumber)
+// 		host[i-30], port[i-30], _ = StringToIpPort(hostnumber)
+// 	}
+// 	for k := 0; k < 29; k++ {
+// 		instance[k].DoPing(host[k+1], port[k+1])
+// 	}
 
-	vdoID := NewRandomID()
-	data := []byte("Hello world")
-	numberKeys := 4
-	threshold := 3
-	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
-	if vdo.Ciphertext == nil {
-		t.Error("Could not vanish vdo")
+// 	vdoID := NewRandomID()
+// 	data := []byte("Hello world")
+// 	numberKeys := 4
+// 	threshold := 3
+// 	vdo := instance[0].Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
+// 	if vdo.Ciphertext == nil {
+// 		t.Error("Could not vanish vdo")
+// 	}
+// 	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
+//      _ = instance[10].Unvanish(instance[0].NodeID, vdoID)
+// 	// if !bytes.Equal(newData, data) {
+// 	// 	t.Error("Unvanish wrong data")
+//  // 	}
+
+// 	return
+// }
+func TestVanish_Unvanish_1(t *testing.T) {
+	instance1 := NewKademlia("localhost:8080")
+	tree_node_trie1 := make([]*Kademlia, 5)
+	for i := 0; i < 5; i++ {
+		address := "localhost:" + strconv.Itoa(7081+i)
+		tree_node_trie1[i] = NewKademlia(address)
+		host1, port1, _ := StringToIpPort(address)
+		instance1.DoPing(host1, port1)
 	}
-	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
-     _ = instance[10].Unvanish(instance[0].NodeID, vdoID)
-	// if !bytes.Equal(newData, data) {
-	// 	t.Error("Unvanish wrong data")
- // 	}
+	SearchKey := instance1.SelfContact.NodeID
+	VdoID := NewRandomID()
+	instance1.Vanish(VdoID, []byte("AAAAAA"), 5, 3, 10000000000)
+	ciphertext := tree_node_trie1[3].Unvanish(SearchKey, VdoID)
+	fmt.Println(string(ciphertext) + "is result")
+	if (!bytes.Equal(ciphertext, []byte("AAAAAA"))) {
+		t.Error("Unvanish error")
+	}
 
 	return
 }

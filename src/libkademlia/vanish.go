@@ -78,6 +78,8 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 func (k *Kademlia) VanishData(data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	K := GenerateRandomCryptoKey()
+	fmt.Println("print stored vanish key")
+	fmt.Println(K)
 	ciphertext := encrypt(K, data)
 	vanishmap,err := sss.Split(numberKeys, threshold, ciphertext)
 	if err != nil {
@@ -88,6 +90,8 @@ func (k *Kademlia) VanishData(data []byte, numberKeys byte,
 	i := 0
 	for key,value :=  range vanishmap {
 		all := append([]byte{key}, value...)
+		fmt.Println("print stored vanish value")
+		fmt.Println(all)
 		k.DoIterativeStore(ids[i],all)
 		i = i + 1;
 	}
@@ -104,6 +108,7 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 	for _,id := range ids {
 		fmt.Println("enter doiterativeValue")
 		value,err := k.DoIterativeFindValue(id)
+		fmt.Println(value)
 		if err == nil {
 			key := value[0]
 			v := value[1:]
