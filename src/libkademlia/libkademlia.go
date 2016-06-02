@@ -712,7 +712,7 @@ func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 // 		return nil
 // }
 func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
-	if nodeID == k.NodeID {
+	if nodeID.Compare(k.NodeID) == 0 {
 		VDOrequest := getVDO {vdoID, make(chan VanashingDataObject)}
 		k.getVDOchan <- VDOrequest
 		vdo := <- VDOrequest.VDOresultchan
