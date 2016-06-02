@@ -188,3 +188,35 @@ func TestIterativeStore(t *testing.T) {
 		}
 	}
 }
+
+func TestUnvanishSimple(t *testing.T) {
+	instance1 := NewKademlia("localhost:7890")
+	instance2 := NewKademlia("localhost:7891")
+	instance3 := NewKademlia("localhost:7892")
+	host2, port2, _ := StringToIpPort("localhost:7891")
+	host3, port3, _ := StringToIpPort("localhost:7892")
+	instance1.DoPing(host2, port2)
+	instance1.DoPing(host3, port3)
+	instance3.DoPing(host2, port2)
+
+	vdoID := NewRandomID()
+	data := []byte("Hello world")
+	numberKeys := 3
+	threshold := 2
+	vdo := instance1.Vanish(vdoID, data, byte(numberKeys), byte(threshold), 300)
+	if vdo.Ciphertext == nil {
+		t.Error("Could not vanish vdo")
+	}
+	// fmt.Println("==========instance[0].SelfContact.Host:")
+	// fmt.Println(instance[0].SelfContact.Host)
+	//contact, err := instance[10].DoIterativeFindNode(instance[0].NodeID)
+    dataUnvanished := instance2.Unvanish(instance1.NodeID, vdoID)
+	if dataUnvanished == nil {
+		t.Error("Could not vanish vdo")
+	}
+	// if !bytes.Equal(newData, data) {
+	// 	t.Error("Unvanish wrong data")
+ // 	}
+
+	return
+}

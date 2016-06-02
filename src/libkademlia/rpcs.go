@@ -7,6 +7,8 @@ package libkademlia
 import (
 	"net"
 	"fmt"
+	// "sync"
+	"strconv"
 )
 
 type KademliaRPC struct {
@@ -145,11 +147,17 @@ type GetVDOResult struct {
 }
 
 func (k *KademliaRPC) GetVDO(req GetVDORequest, res *GetVDOResult) error {
-	// TODO: Implement.s
+	// TODO: Implement.
 	res.MsgID = req.MsgID
-    VDOrequest := getVDO {req.VdoID, make(chan VanashingDataObject)}
-	k.kademlia.getVDOchan <- VDOrequest
-	vdo := <- VDOrequest.VDOresultchan
+ //    VDOrequest := getVDO {req.VdoID, make(chan VanashingDataObject)}
+	// k.kademlia.getVDOchan <- &VDOrequest
+	// vdo := <- VDOrequest.VDOresultchan
+	k.kademlia.storeMutex.RLock()
+	vdo := k.kademlia.vdoMap[req.VdoID]
+	k.kademlia.storeMutex.RUnlock()
+
+	fmt.Println("get vdo : " + strconv.Itoa(int(vdo.NumberKeys)))
+	
 	// get vdo from vdostore vdo := vdoStroe(req.VdoID)
 	res.VDO = vdo
 	return nil

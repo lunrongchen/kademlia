@@ -8,6 +8,8 @@ import (
 	mathrand "math/rand"
 	"time"
 	"sss"
+	"fmt"
+	"strconv"
 )
 
 type VanashingDataObject struct {
@@ -72,41 +74,48 @@ func decrypt(key []byte, ciphertext []byte) (text []byte) {
 	return ciphertext
 }
 
-
-func (k *Kademlia) VanishData(data []byte, numberKeys byte,
+func (k *Kademlia) VanishData(vdoID ID, data []byte, numberKeys byte,
 	threshold byte, timeoutSeconds int) (vdo VanashingDataObject) {
 	K := GenerateRandomCryptoKey()
 	ciphertext := encrypt(K, data)
-	vanishmap,_ := sss.Split(numberKeys, threshold, ciphertext)
-	L := GenerateRandomAccessKey()
-	ids := CalculateSharedKeyLocations(L, int64(numberKeys))
+	vanishmap, err := sss.Split(numberKeys, threshold, ciphertext)
+	if err != nil {
+		return
+	}
+	accessKey := GenerateRandomAccessKey()
+	ids := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
 	i := 0
 	for key,value :=  range vanishmap {
 		all := append([]byte{key}, value...)
 		k.DoIterativeStore(ids[i],all)
 		i = i + 1;
 	}
-	vdo = VanashingDataObject {L, ciphertext, numberKeys, threshold}
+	vdo = VanashingDataObject {accessKey, ciphertext, numberKeys, threshold}
 	return vdo
 }
 
 func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
-	L := vdo.AccessKey
+	accessKey := vdo.AccessKey
 	numberKeys := vdo.NumberKeys
-	ids := CalculateSharedKeyLocations(L, int64(numberKeys))
+	ids := CalculateSharedKeyLocations(accessKey, int64(numberKeys))
+	fmt.Println("!!!!!!!number of ids" + strconv.Itoa(len(ids)))
 	unvanishmap := make(map[byte] []byte)
 	for _,id := range ids {
-		value,_ := k.DoIterativeFindValue(id)
-		if value != nil{
+		fmt.Println("enter doiterativeValue")
+		value, err := k.DoIterativeFindValue(id)
+		if err == nil {
 			key := value[0]
 			v := value[1:]
 			unvanishmap[key] = v
-			if len(unvanishmap) == int(vdo.Threshold) {
-				break
-			}
+	    if len(unvanishmap) == int(vdo.Threshold) {
+		 	break
+	    }
 		}
 	}
 	K := sss.Combine(unvanishmap)
-	D := decrypt(K, vdo.Ciphertext)
-	return D
+	fmt.Println("==========recovered key from unvanishmap:")
+	fmt.Println(K)
+	fmt.Println(len(K))
+	data = decrypt(K, vdo.Ciphertext)
+	return data
 }
