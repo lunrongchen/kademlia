@@ -398,7 +398,7 @@ func TestVanish(t *testing.T) {
 }
 
 
-func TestUnvanish2(t *testing.T) {
+func TestUnvanish(t *testing.T) {
 	instance := make([]*Kademlia,30)
 	host := make([]net.IP, 30)
 	port := make([]uint16, 30)

@@ -92,12 +92,14 @@ func (k *Kademlia) VanishData(data []byte, numberKeys byte,
 	i := 0
 	for key,value :=  range vanishmap {
 		all := append([]byte{key}, value...)
-		fmt.Println("print stored vanish value")
-		fmt.Println(all)
+		//fmt.Println("print stored vanish value")
+		//fmt.Println(all)
 		k.DoIterativeStore(ids[i],all)
 		i = i + 1;
 	}
 	vdo = VanashingDataObject {L, ciphertext, numberKeys, threshold}
+	now := time.Now()
+	go k.Timeout(L,vanishmap,timeoutSeconds,now,numberKeys)
 	return vdo
 }
 
@@ -109,7 +111,7 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 	unvanishmap := make(map[byte] []byte)
 	for _,id := range ids {
 		value,err := k.DoIterativeFindValue(id)
-		fmt.Println(value)
+		//fmt.Println(value)
 		if err == nil{
 			key := value[0]
 			v := value[1:]
@@ -126,4 +128,21 @@ func (k *Kademlia) UnvanishData(vdo VanashingDataObject) (data []byte) {
 	// count := int32(K)
 	D := decrypt(K, vdo.Ciphertext)
 	return D
+}
+
+func (k *Kademlia) Timeout(L int64, vanishmap  map[byte][]byte, timeoutSeconds int, now time.Time, numberKeys byte) {
+	for{
+		time.Sleep(time.Duration(timeoutSeconds) * time.Second)
+		current := time.Now()
+		epoch := current.Unix() - now.Unix()
+		ids := CalculateSharedKeyLocations(L+epoch, int64(numberKeys))
+		i := 0
+		for key,value :=  range vanishmap {
+			all := append([]byte{key}, value...)
+			//fmt.Println("print stored vanish value")
+			//fmt.Println(all)
+			k.DoIterativeStore(ids[i],all)
+		}
+	}
+			
 }
