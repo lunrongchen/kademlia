@@ -135,7 +135,7 @@ func (k *Kademlia) Timeout(L int64, vanishmap  map[byte][]byte, timeoutSeconds i
 		time.Sleep(time.Duration(timeoutSeconds) * time.Second)
 		current := time.Now()
 		epoch := current.Unix() - now.Unix()
-		ids := CalculateSharedKeyLocations(L+epoch, int64(numberKeys))
+		ids := CalculateSharedKeyLocations(L+int64(epoch), int64(numberKeys))
 		i := 0
 		for key,value :=  range vanishmap {
 			all := append([]byte{key}, value...)
@@ -143,6 +143,5 @@ func (k *Kademlia) Timeout(L int64, vanishmap  map[byte][]byte, timeoutSeconds i
 			//fmt.Println(all)
 			k.DoIterativeStore(ids[i],all)
 		}
-	}
-			
+	}		
 }
