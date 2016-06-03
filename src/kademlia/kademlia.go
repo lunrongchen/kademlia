@@ -353,10 +353,10 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 		} else {
 			response = fmt.Sprintf("OK: Found value %s", value)
 		}
-////  vanish [VDO ID] [data] [numberKeys] [threshold]
+////  vanish [VDO ID] [data] [numberKeys] [threshold] 
 	case toks[0] == "vanish":
-		if len(toks) != 5 {
-			response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold]"
+		if len(toks) != 6 {
+			response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold] "
 			return
 		}
 		vdoID, err := libkademlia.IDFromString(toks[1])
