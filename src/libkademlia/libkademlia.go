@@ -155,7 +155,7 @@ func (k *Kademlia) UpdateRoutingTable(contact *Contact){
 		*bucket = append((*bucket)[:contactIndex], (*bucket)[(contactIndex+1):]...)
 	 	*bucket = append(*bucket, tmpContact)
 	}
-	fmt.Println("bucket update finished")
+	// fmt.Println("bucket update finished")
 }
 
 func handleRequest(k *Kademlia) {
@@ -259,7 +259,7 @@ func (k *Kademlia) DoPing(host net.IP, port uint16) (*Contact, error) {
 
 	k.ContactChan <- &(&pong).Sender
 	defer client.Close()
-	return nil, nil
+	return &(&pong).Sender, nil
 }
 
 func (k *Kademlia) DoStore(contact *Contact, key ID, value []byte) error {
@@ -417,10 +417,23 @@ type shortlistUpdate struct {
 
 func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
-	closestnode Contact, found_value []byte) bool{
-	if found_value != nil {
+	closestnode Contact, valueSearchChan chan bool, valueResultChan chan bool) bool{
+	valueSearchChan <- true
+	valueSearchResult := <- valueResultChan
+	if valueSearchResult == true {
 		return true
 	}
+
+// func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
+// 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
+// 	closestnode Contact) bool{
+
+// func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shortlistGetContensChan chan bool, 
+// 	shortlistResContensChan chan ContactDistance, activeMapSearchChan chan ID, activeMapResultChan chan bool, 
+// 	closestnode Contact, found_value []byte) bool{
+// 	if found_value != nil {
+// 		return true
+// 	}
 	shortlistContentsTmp := make([]ContactDistance, 0)
 	shortlistGetLenChan <- true
 	shortlistLen := <-shortlistResLenChan
@@ -435,7 +448,6 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shor
 		if activeMapResultBool == false {
 			return false
 		}
-		fmt.Println(i)
 	}
 	return true
 }
@@ -443,7 +455,7 @@ func completed(shortlistGetLenChan chan bool, shortlistResLenChan chan int, shor
 func (k *Kademlia) SendFindNodeQuery(c Contact, activeMapSearchChan chan ID, 
 	activeMapResultChan chan bool, activeMapUpdateChan chan * activeUpdate, 
 	waitChan chan int, nodeChan chan Contact,target ID) {
-
+	
 	tmpUpdate := new(activeUpdate)
 	tmpUpdate.targetID = c.NodeID
 	tmpUpdate.boolActive = true
@@ -511,7 +523,10 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	activeMapSearchChan := make(chan ID)
 	activeMapResultChan	:= make(chan bool)
 	activeMapUpdateChan := make(chan * activeUpdate)
-	
+
+	valueSearchChan := make(chan bool)
+	valueResultChan := make(chan bool)
+
 	if findvalue == true {
 		result.key = target
 	}
@@ -564,6 +579,14 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 						shortlistResContensChan <- cTmp
 					}
 				}
+			case valueSearchTmp := <- valueSearchChan:
+				if valueSearchTmp == true {
+					if result.value != nil {
+						valueResultChan <- true						
+					} else {
+						valueResultChan <- false
+					}
+				} 
 			}
 		}
 	}()
@@ -573,7 +596,9 @@ func (k *Kademlia) IterativeFindNode(target ID, findvalue bool) (result *Iterati
 	for !completed(shortlistGetLenChan, shortlistResLenChan, 
 		           shortlistGetContensChan, shortlistResContensChan, 
 		           activeMapSearchChan, activeMapResultChan, 
-		           closestNode, result.value) {
+		           // closestNode) {
+		           closestNode, valueSearchChan, valueResultChan) {
+				   // closestNode, result.value) {
 		shortlistContents := make([]ContactDistance, 0)
 		shortlistGetLenChan <- true
 		shortlistLen := <-shortlistResLenChan
@@ -656,16 +681,16 @@ func (k *Kademlia) DoIterativeFindNode(id ID) ([]Contact, error) {
 func (k *Kademlia) DoIterativeStore(key ID, value []byte) ([]Contact, error) {
 	result := k.IterativeFindNode(key, false)
 	for _, c := range result.contacts {
-		go k.DoStore(&c, key, value)
+		 k.DoStore(&c, key, value)
 	}
 	return result.contacts, nil
 }
 
 func (k *Kademlia) DoIterativeFindValue(key ID) (value []byte, err error) {
 	result := k.IterativeFindNode(key, true)
-	fmt.Println("result.key : " + result.key.AsString() + "\n" + "result.value : " + string(result.value) + "\n")
+	fmt.Println("result.key : " + result.key.AsString() + "\n"  +"\n")
 	if result.value != nil {
-		str := "Key: " + result.key.AsString() + " --> Value: " + string(result.value)
+		str := "Key: " + result.key.AsString()  
 		fmt.Println(str + "\n")
 		return result.value, nil
 	} else {
@@ -682,31 +707,37 @@ func (k *Kademlia) Vanish(vdoID ID, data []byte, numberKeys byte,
 	k.VDOchan <- VDOstore
 	return vdo
 }
-
+// func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
+// 		_,_ = k.DoIterativeFindNode(nodeID)
+// 		return nil
+// }
 func (k *Kademlia) Unvanish(nodeID ID, vdoID ID) (data []byte) {
-	if nodeID == k.NodeID {
+	if nodeID.Compare(k.NodeID) == 0 {
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter if")
 		VDOrequest := getVDO {vdoID, make(chan VanashingDataObject)}
 		k.getVDOchan <- VDOrequest
 		vdo := <- VDOrequest.VDOresultchan
 		data = k.UnvanishData(vdo)
 		return data
 	} else {
-		req := new(GetVDORequest)
+		req := GetVDORequest{k.SelfContact, vdoID, NewRandomID()}
 		contacts,_ := k.DoIterativeFindNode(nodeID)
+		var contact Contact
 		for _,c := range contacts {
-			if c.NodeID == nodeID {
-				req.Sender = c
+			if c.NodeID.Compare(nodeID) == 0 {
+				contact = c
+				fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter11111111111")
 				break
 			}
 		}
-		if req.Sender.NodeID != nodeID {
+		fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter22222222222")
+		if contact.NodeID.Compare(nodeID) != 0 {
+			fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!!!!enter333333333333")
 			return nil
 		}
 		var res GetVDOResult
-		req.MsgID = NewRandomID()
-		req.VdoID = vdoID
-		port_str := strconv.Itoa(int(k.SelfContact.Port))
-		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(k.SelfContact.Host, k.SelfContact.Port), rpc.DefaultRPCPath+port_str)
+		port_str := strconv.Itoa(int(contact.Port))
+		client, err := rpc.DialHTTPPath("tcp", ConbineHostIP(contact.Host, contact.Port), rpc.DefaultRPCPath+port_str)
 		if err != nil {
 			log.Fatal("DialHTTP: ", err)
 		}
