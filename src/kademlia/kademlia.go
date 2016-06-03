@@ -355,7 +355,7 @@ func executeLine(k *libkademlia.Kademlia, line string) (response string) {
 		}
 ////  vanish [VDO ID] [data] [numberKeys] [threshold] 
 	case toks[0] == "vanish":
-		if len(toks) != 6 {
+		if len(toks) != 5 {
 			response = "usage: vanish [VDO ID] [data] [numberKeys] [threshold] "
 			return
 		}
